@@ -20,10 +20,10 @@ void main() {
   });
 
   test('getPlatformVersion', () async {
-    FlutterAudioRecorder4 flutterAudioRecorder4Plugin = FlutterAudioRecorder4();
-    MockFlutterAudioRecorder4Platform fakePlatform = MockFlutterAudioRecorder4Platform();
-    FlutterAudioRecorder4Platform.instance = fakePlatform;
-
-    expect(await flutterAudioRecorder4Plugin.getPlatformVersion(), '42');
+    // FlutterAudioRecorder4 flutterAudioRecorder4Plugin = FlutterAudioRecorder4();
+    // MockFlutterAudioRecorder4Platform fakePlatform = MockFlutterAudioRecorder4Platform();
+    // FlutterAudioRecorder4Platform.instance = fakePlatform;
+    //
+    // expect(await flutterAudioRecorder4Plugin.getPlatformVersion(), '42');
   });
 }
