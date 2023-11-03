@@ -14,13 +14,9 @@ import androidx.core.content.ContextCompat
 import com.tcubedstudios.flutter_audio_recorder4.MethodCalls.*
 import com.tcubedstudios.flutter_audio_recorder4.MethodCalls.Companion.toMethodCall
 import com.tcubedstudios.flutter_audio_recorder4.RecorderState.*
-import io.flutter.embedding.engine.plugins.FlutterPlugin
-import io.flutter.embedding.engine.plugins.FlutterPlugin.FlutterPluginBinding
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
-import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
-import io.flutter.plugin.common.PluginRegistry
 import io.flutter.plugin.common.PluginRegistry.Registrar
 import java.io.File
 import java.io.FileInputStream
@@ -30,9 +26,10 @@ import java.io.IOException
 import kotlin.math.abs
 import kotlin.math.ln
 
-class FlutterAudioRecorder4Plugin(
-  var registrar: Registrar
-): FlutterPlugin, MethodCallHandler, PluginRegistry.RequestPermissionsResultListener {
+class FlutterAudioRecorder4Plugin: PermissionRequestListenerActivityPlugin() {
+
+  //TODO - CHRIS
+  // If recorder is ever expected to operate in a background service, implement ServiceAware interface.
 
   companion object {
     private const val LOG_NAME = "AndroidAudioRecorder"
@@ -42,18 +39,7 @@ class FlutterAudioRecorder4Plugin(
     private const val DEFAULTS_AVERAGE_POWER = -120.0
     private const val DEFAULTS_DATA_SIZE = 0L
     private const val DEFAULTS_BUFFER_SIZE = 1024
-
-    fun registerWith(registrar: Registrar) {
-      val channel = MethodChannel(registrar.messenger(), "flutter_audio_recorder4")
-      channel.setMethodCallHandler(FlutterAudioRecorder4Plugin(registrar))
-    }
   }
-
-  /// The MethodChannel that will the communication between Flutter and native Android
-  ///
-  /// This local reference serves to register the plugin with the Flutter Engine and unregister it
-  /// when the Flutter Engine is detached from the Activity
-  private lateinit var channel : MethodChannel
 
   private var allPermissionsGranted = false
   private var sampleRate = 16000L//Khz
@@ -72,21 +58,6 @@ class FlutterAudioRecorder4Plugin(
     get() = filePath?.plus(".temp")
   private val duration: Int
     get() = (dataSize / (sampleRate * 2 * 1)).toInt()
-
-  init {
-    registrar.addRequestPermissionsResultListener(this)
-  }
-
-  //region Flutter plugin binding
-  override fun onAttachedToEngine(flutterPluginBinding: FlutterPluginBinding) {
-    channel = MethodChannel(flutterPluginBinding.binaryMessenger, "flutter_audio_recorder4")
-    channel.setMethodCallHandler(this)
-  }
-
-  override fun onDetachedFromEngine(binding: FlutterPluginBinding) {
-    channel.setMethodCallHandler(null)
-  }
-  //endregion
 
   //region Handle method calls from flutter
   override fun onMethodCall(call: MethodCall, result: Result) {
@@ -113,16 +84,21 @@ class FlutterAudioRecorder4Plugin(
       requestPermissions()
   }
 
-  private fun areAllPermissionsGranted() = if (VERSION.SDK_INT >= VERSION_CODES.M) {
-    // if after [Marshmallow], we need to check permission on runtime
-    ContextCompat.checkSelfPermission(registrar.context(), RECORD_AUDIO) == PERMISSION_GRANTED &&
-    ContextCompat.checkSelfPermission(registrar.context(), WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED
-  } else {
-    ContextCompat.checkSelfPermission(registrar.context(), RECORD_AUDIO) == PERMISSION_GRANTED
+  private fun areAllPermissionsGranted() : Boolean {
+    activity?.let { activity ->
+      return if (VERSION.SDK_INT >= VERSION_CODES.M) {
+        // if after [Marshmallow], we need to check permission on runtime
+        ContextCompat.checkSelfPermission(activity, RECORD_AUDIO) == PERMISSION_GRANTED &&
+        ContextCompat.checkSelfPermission(activity, WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED
+      } else {
+        ContextCompat.checkSelfPermission(activity, RECORD_AUDIO) == PERMISSION_GRANTED
+      }
+    }
+    return false
   }
 
   private fun requestPermissions() {
-    registrar.activity()?.let { activity ->
+    activity?.let { activity ->
       val permissions = if(VERSION.SDK_INT >= VERSION_CODES.M) arrayOf(RECORD_AUDIO, WRITE_EXTERNAL_STORAGE) else arrayOf(RECORD_AUDIO)
       ActivityCompat.requestPermissions(activity, permissions, PERMISSIONS_REQUEST_CODE)
     }
