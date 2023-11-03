@@ -93,7 +93,7 @@ class FlutterAudioRecorder4Plugin(
     this.result = result
 
     when(call.method.toMethodCall()) {
-      REQUEST_PERMISSIONS -> handleRequestPermissions()
+      HAS_PERMISSIONS -> handleHasPermissions()
       INIT -> handleInit(call, result)
       CURRENT -> handleCurrent(call, result)
       START -> handleStart(call, result)
@@ -106,7 +106,7 @@ class FlutterAudioRecorder4Plugin(
   //endregion
 
   //region Permission handling
-  private fun handleRequestPermissions() {
+  private fun handleHasPermissions() {
     if (areAllPermissionsGranted())
       result?.success(true)
     else
@@ -143,8 +143,6 @@ class FlutterAudioRecorder4Plugin(
   //endregion
 
   //region Recorder
-
-  //endregion
   private fun handleInit(call: MethodCall, result: Result) {
     resetRecorder()
 
@@ -248,12 +246,9 @@ class FlutterAudioRecorder4Plugin(
     averagePower = DEFAULTS_AVERAGE_POWER
     dataSize = DEFAULTS_DATA_SIZE
   }
+  //endregion
 
-  private fun startThread() {
-    recordingThread = Thread({ processAudioStream() }, "Audio Processing Thread")
-    recordingThread?.start()
-  }
-
+  //region Audio Stream
   private fun processAudioStream() {
     val size = bufferSize
     val bData = ByteArray(size)
@@ -271,6 +266,31 @@ class FlutterAudioRecorder4Plugin(
     }
   }
 
+  private fun updatePowers(byteArray: ByteArray) {
+    val shortArray = byteArray.toShortArray()
+    val sampleVal: Short = shortArray.last()
+    val escapeRecorderStateList = arrayOf(PAUSED, STOPPED, INITIALIZED, UNSET)
+
+    averagePower = if (sampleVal == 0.toShort() || escapeRecorderStateList.contains(recorderState)) {
+      DEFAULTS_AVERAGE_POWER //to match iOS silent case
+    } else {
+      // iOS factor : to match iOS power level
+      val iOsFactor = 0.25
+      20 * ln(abs(sampleVal.toDouble()) / 32768.0) * iOsFactor
+    }
+
+    peakPower = averagePower
+  }
+  //endregion
+
+  //region Threads
+  private fun startThread() {
+    recordingThread = Thread({ processAudioStream() }, "Audio Processing Thread")
+    recordingThread?.start()
+  }
+  //endregion
+
+  //region Files
   private fun deleteTempFile() {
     tempFileName?.let {
       val file = File(it)
@@ -306,12 +326,12 @@ class FlutterAudioRecorder4Plugin(
 
   @Throws (IOException::class)
   private fun writeWaveFileHeader(
-      out: FileOutputStream,
-      totalAudioLength: Long,
-      totalDataLength: Long,
-      longSampleRate: Long,
-      channels: Int,
-      byteRate: Long
+          out: FileOutputStream,
+          totalAudioLength: Long,
+          totalDataLength: Long,
+          longSampleRate: Long,
+          channels: Int,
+          byteRate: Long
   ) {
     try {
       val header = ByteArray(44)
@@ -371,20 +391,5 @@ class FlutterAudioRecorder4Plugin(
       throw exception
     }
   }
-
-  private fun updatePowers(byteArray: ByteArray) {
-    val shortArray = byteArray.toShortArray()
-    val sampleVal: Short = shortArray.last()
-    val escapeStatusList = arrayOf(PAUSED, STOPPED, INITIALIZED, UNSET)
-
-    averagePower = if (sampleVal == 0.toShort() || escapeStatusList.contains(recorderState)) {
-      DEFAULTS_AVERAGE_POWER //to match iOS silent case
-    } else {
-      // iOS factor : to match iOS power level
-      val iOsFactor = 0.25
-      20 * ln(abs(sampleVal.toDouble()) / 32768.0) * iOsFactor
-    }
-
-    peakPower = averagePower
-  }
+  //endregion
 }
