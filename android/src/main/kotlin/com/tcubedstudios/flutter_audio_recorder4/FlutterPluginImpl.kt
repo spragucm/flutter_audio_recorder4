@@ -7,20 +7,6 @@ import io.flutter.plugin.common.PluginRegistry
 
 abstract class FlutterPluginImpl : FlutterPlugin, MethodCallHandler {
 
-    companion object {
-        // Note that the plugin should still contain the static registerWith() method to remain compatible with apps that don’t use the v2 Android embedding.
-        // Apps using the v2 Android embedding use onAttachedToEngine().
-        // Only registerWith or onAttachedToEngine will be called, not both.
-        // https://docs.flutter.dev/release/breaking-changes/plugin-api-migration
-        fun registerWith(registrar: PluginRegistry.Registrar) {
-            MethodChannel(registrar.messenger(), "flutter_audio_recorder4").apply {
-                val plugin = FlutterAudioRecorder4Plugin()
-                setMethodCallHandler(plugin)
-                registrar.addRequestPermissionsResultListener(plugin)
-            }
-        }
-    }
-
     /// The MethodChannel that will the communication between Flutter and native Android
     ///
     /// This local reference serves to register the plugin with the Flutter Engine and unregister it
