@@ -110,14 +110,18 @@ class FlutterAudioRecorder4Plugin: PermissionRequestListenerActivityPlugin() {
   }
 
   private fun handleCurrent(call: MethodCall, result: Result) {
-    val currentResult = java.util.HashMap<String, Any>()//TODO - CHRIS - is hashmap required?
-    currentResult[DURATION] = duration * 1000
-    currentResult[FILEPATH] = if (recorderState == STOPPED) filePath else tempFileName
-    currentResult[AUDIO_FORMAT] = extension
-    currentResult[PEAK_POWER] = peakPower
-    currentResult[AVERAGE_POWER] = averagePower
-    currentResult[METERING_ENABLED] = true
-    currentResult[RECORDER_STATE] = recorderState
+    val currentResult = mapOf(
+        FILEPATH to if (recorderState == STOPPED) filePath else tempFileName,
+        EXTENSION to extension,
+        DURATION to duration * 1000,
+        AUDIO_FORMAT to extension?.toAudioFormat(),
+        RECORDER_STATE to recorderState,
+        METERING_ENABLED to true,
+        PEAK_POWER to peakPower,
+        AVERAGE_POWER to averagePower,
+        SAMPLE_RATE to sampleRate
+    )
+
     result.success(currentResult)
   }
 

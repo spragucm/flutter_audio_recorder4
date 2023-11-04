@@ -123,6 +123,28 @@ class FlutterAudioRecorder4 {
       );
   }
 
+  /// Ask for current status of recording
+  /// Returns the result of current recording status
+  /// Metering level, Duration, Status...
+  Future<Recording?> current({int channel = DEFAULT_CHANNEL}) async {
+    var result = await CHANNEL.invokeMethod(
+        NativeMethodCall.CURRENT.methodName,
+        {
+          NamedArguments.CHANNEL:channel                          //TODO - CHRIS - why pass channel why Android not using it?
+        }
+    );
+
+    if (result != null && recording?.recorderState != RecorderState.STOPPED) {
+      Map<String, Object> response = Map.from(result);
+      var recordingFromResponse = response.toRecording();
+      if (recordingFromResponse != null) {
+        recording = recordingFromResponse;
+      }
+    }
+
+    return recording;
+  }
+
   /// Request an initialized recording instance to be [started]
   /// Once executed, audio recording will start working and
   /// a file will be generated in user's file system
@@ -148,28 +170,6 @@ class FlutterAudioRecorder4 {
     var result = await CHANNEL.invokeMethod(NativeMethodCall.STOP.methodName);
 
     if (result != null) {
-      Map<String, Object> response = Map.from(result);
-      var recordingFromResponse = response.toRecording();
-      if (recordingFromResponse != null) {
-        recording = recordingFromResponse;
-      }
-    }
-
-    return recording;
-  }
-
-  /// Ask for current status of recording
-  /// Returns the result of current recording status
-  /// Metering level, Duration, Status...
-  Future<Recording?> current({int channel = DEFAULT_CHANNEL}) async {
-    var result = await CHANNEL.invokeMethod(
-        NativeMethodCall.CURRENT.methodName,
-        {
-          NamedArguments.CHANNEL:channel
-        }
-    );
-
-    if (result != null && recording?.recorderState != RecorderState.STOPPED) {
       Map<String, Object> response = Map.from(result);
       var recordingFromResponse = response.toRecording();
       if (recordingFromResponse != null) {
