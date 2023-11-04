@@ -1,11 +1,15 @@
 package com.tcubedstudios.flutter_audio_recorder4
 
+import androidx.annotation.CallSuper
 import io.flutter.embedding.engine.plugins.FlutterPlugin
+import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
-import io.flutter.plugin.common.PluginRegistry
+import io.flutter.plugin.common.MethodChannel.Result
 
 abstract class FlutterPluginImpl : FlutterPlugin, MethodCallHandler {
+
+    protected var result: Result? = null
 
     /// The MethodChannel that will the communication between Flutter and native Android
     ///
@@ -23,4 +27,9 @@ abstract class FlutterPluginImpl : FlutterPlugin, MethodCallHandler {
         channel.setMethodCallHandler(null)
     }
     //endregion
+
+    @CallSuper
+    override fun onMethodCall(call: MethodCall, result: Result) {
+        this.result = result
+    }
 }
