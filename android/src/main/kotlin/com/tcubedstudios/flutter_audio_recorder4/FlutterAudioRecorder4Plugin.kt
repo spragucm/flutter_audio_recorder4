@@ -1,14 +1,14 @@
 package com.tcubedstudios.flutter_audio_recorder4
 
-import NamedArguments.AUDIO_FORMAT
-import NamedArguments.AVERAGE_POWER
-import NamedArguments.DURATION
-import NamedArguments.EXTENSION
-import NamedArguments.FILEPATH
-import NamedArguments.METERING_ENABLED
-import NamedArguments.PEAK_POWER
-import NamedArguments.RECORDER_STATE
-import NamedArguments.SAMPLE_RATE
+import com.tcubedstudios.flutter_audio_recorder4.NamedArguments.AUDIO_FORMAT
+import com.tcubedstudios.flutter_audio_recorder4.NamedArguments.AVERAGE_POWER
+import com.tcubedstudios.flutter_audio_recorder4.NamedArguments.DURATION
+import com.tcubedstudios.flutter_audio_recorder4.NamedArguments.EXTENSION
+import com.tcubedstudios.flutter_audio_recorder4.NamedArguments.FILEPATH
+import com.tcubedstudios.flutter_audio_recorder4.NamedArguments.METERING_ENABLED
+import com.tcubedstudios.flutter_audio_recorder4.NamedArguments.PEAK_POWER
+import com.tcubedstudios.flutter_audio_recorder4.NamedArguments.RECORDER_STATE
+import com.tcubedstudios.flutter_audio_recorder4.NamedArguments.SAMPLE_RATE
 import android.Manifest.permission.RECORD_AUDIO
 import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
 import android.annotation.SuppressLint
@@ -85,10 +85,10 @@ class FlutterAudioRecorder4Plugin: PermissionRequestListenerActivityPlugin() {
   //region Recorder
   private fun handleInit(call: MethodCall, result: Result) {
     resetRecorder()
-
-    sampleRate = call.argument<Any>(SAMPLE_RATE).toString().toLong()
+    
     filePath = call.argument<Any>(FILEPATH).toString()
     fileExtension = call.argument<Any>(EXTENSION).toString()//TODO - CHRIS - use audioFormat?
+    sampleRate = call.argument<Any>(SAMPLE_RATE).toString().toLong()
     bufferSize = AudioRecord.getMinBufferSize(sampleRate.toInt(), CHANNEL_IN_MONO, ENCODING_PCM_16BIT)
     recorderState = INITIALIZED
 
