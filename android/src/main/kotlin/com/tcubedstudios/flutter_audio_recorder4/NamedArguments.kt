@@ -1,3 +1,5 @@
+package com.tcubedstudios.flutter_audio_recorder4
+
 object NamedArguments {
     const val AUDIO_FORMAT = "audioFormat"
     const val AVERAGE_POWER = "averagePower"
