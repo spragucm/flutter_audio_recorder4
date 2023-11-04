@@ -6,8 +6,17 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
+import io.flutter.plugin.common.PluginRegistry
 
 abstract class FlutterPluginImpl : FlutterPlugin, MethodCallHandler {
+
+    companion object {
+        @JvmStatic
+        fun registerWith(registrar: PluginRegistry.Registrar) {
+            val channel = MethodChannel(registrar.messenger(), "flutter_audio_recorder4")
+            channel.setMethodCallHandler(FlutterAudioRecorder4Plugin())//TODO - CHRIS - need to pass registrar for older projects
+        }
+    }
 
     protected var result: Result? = null
 
