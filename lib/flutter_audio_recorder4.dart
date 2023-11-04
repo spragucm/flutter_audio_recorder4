@@ -17,7 +17,8 @@ class FlutterAudioRecorder4 {
 
   static const int DEFAULT_CHANNEL = 0;
   static const MethodChannel CHANNEL = MethodChannel('flutter_audio_recorder');
-  static const String DEFAULT_EXTENSION = '.m4a';
+  static const AudioFormat DEFAULT_AUDIO_FORMAT = AudioFormat.AAC;
+  static String DEFAULT_EXTENSION = DEFAULT_AUDIO_FORMAT.extension;
   static LocalFileSystem LOCAL_FILE_SYSTEM = const LocalFileSystem();
 
   /// Returns the result of record permission
@@ -36,7 +37,7 @@ class FlutterAudioRecorder4 {
   Future? get initialized => initRecorder;
   //Recording? get recording => recording;
 
-  FlutterAudioRecorder4(String filepath, { AudioFormat? audioFormat, int sampleRate = 16000 }) {
+  FlutterAudioRecorder4({String? filepath, AudioFormat? audioFormat, int sampleRate = 16000 }) {
     initRecorder = init(filepath, audioFormat, sampleRate);
   }
 
@@ -52,27 +53,30 @@ class FlutterAudioRecorder4 {
   }
 
   Map<String, String?> resolvePathAndExtension(String? filepath, AudioFormat? audioFormat) {
-    var values = { NamedArguments.FILEPATH : filepath, NamedArguments.EXTENSION : DEFAULT_EXTENSION };
 
-    if (filepath == null) return values;
-
-    String extensionInPath = path_library.extension(filepath);
-
-    if (audioFormat != null && extensionInPath.toAudioFormat() != audioFormat) {
-      values[NamedArguments.EXTENSION] = audioFormat.extension;
-      values[NamedArguments.FILEPATH] = path_library.withoutExtension(filepath) + audioFormat.extension;
-
-    } else if (audioFormat != null) {
-      values[NamedArguments.EXTENSION] = path_library.extension(filepath);
-
-    } else if (extensionInPath.isValidAudioExtension()) {
-      values[NamedArguments.EXTENSION] = extensionInPath;
-
-    } else {
-      values[NamedArguments.FILEPATH] = filepath + DEFAULT_EXTENSION;
+    String? pathExtension = filepath == null ? null : path_library.extension(filepath);
+    AudioFormat? extensionAudioFormat = pathExtension?.toAudioFormat();
+    bool useExtensionAudioFormat = (extensionAudioFormat != null && audioFormat == null) ||
+                                   (extensionAudioFormat != null && audioFormat != null &&  audioFormat == extensionAudioFormat);
+    bool isPathExtensionValid = pathExtension?.isValidAudioExtension() ?? false;
+    
+    /*
+    - If preferred audio format is provided and the file's extension maps to a different audio format,
+      then use the extension associated with the preferred audio format
+    - If preferred audio format is provided and the file's extension maps to the same audio format,
+      then use the file's extension since it has more granularity
+    - If there is no preferred audio format, use the file's extension and the associated audio format
+    - If the file's extension is not a valid audio format, use the default audio format's associated extension
+    */
+    var extension = audioFormat?.extension ?? DEFAULT_EXTENSION;
+    if (isPathExtensionValid && useExtensionAudioFormat) {
+      extension = pathExtension!;
     }
 
-    return values;
+    return {
+      NamedArguments.FILEPATH : filepath == null ? filepath : path_library.withoutExtension(filepath) + extension,
+      NamedArguments.EXTENSION : extension
+    };
   }
 
   void validateFilepath(String? filepath) async {
