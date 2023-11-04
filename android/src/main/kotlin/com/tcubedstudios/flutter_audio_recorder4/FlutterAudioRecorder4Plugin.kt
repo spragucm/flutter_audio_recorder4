@@ -164,16 +164,16 @@ class FlutterAudioRecorder4Plugin: PermissionRequestListenerActivityPlugin() {
     } else {
       recorderState = STOPPED
 
-      // Return Recording Object
-      val currentResult = HashMap<String, Any>()
-      currentResult[DURATION] = duration * 1000
-      currentResult[FILEPATH] = filePath
-      currentResult[AUDIO_FORMAT] = extension
-      currentResult[PEAK_POWER] = peakPower
-      currentResult[AVERAGE_POWER] = averagePower
-      currentResult[METERING_ENABLED] = true
-      currentResult[RECORDER_STATE] = recorderState
-
+      val currentResult = mapOf(
+        DURATION to duration * 1000,
+        FILEPATH to filePath,
+        AUDIO_FORMAT to extension,
+        PEAK_POWER to peakPower,
+        AVERAGE_POWER to averagePower,
+        METERING_ENABLED to true,
+        RECORDER_STATE to recorderState
+      )
+      
       resetRecorder()
       recordingThread = null
       recorder?.stop()
@@ -185,7 +185,12 @@ class FlutterAudioRecorder4Plugin: PermissionRequestListenerActivityPlugin() {
         exception.printStackTrace()
       }
 
-      copyWaveFile(tempFileName, filePath)
+      tempFileName?.let { tempFileName ->
+        filePath?.let {filePath ->
+          copyWaveFile(tempFileName, filePath)
+        }
+      }
+
       deleteTempFile()
 
       result.success(currentResult)
