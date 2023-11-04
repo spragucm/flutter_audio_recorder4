@@ -12,6 +12,7 @@ import 'package:file/local.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as path_library;
 import 'native_method_call.dart';
+import 'dart:developer' as developer;
 
 class FlutterAudioRecorder4 {
 
@@ -19,6 +20,7 @@ class FlutterAudioRecorder4 {
   static const MethodChannel CHANNEL = MethodChannel('flutter_audio_recorder');
   static const AudioFormat DEFAULT_AUDIO_FORMAT = AudioFormat.AAC;
   static String DEFAULT_EXTENSION = DEFAULT_AUDIO_FORMAT.extension;
+  static const int DEFAULT_SAMPLE_RATE = 16000;//khz
   static LocalFileSystem LOCAL_FILE_SYSTEM = const LocalFileSystem();
 
   /// Returns the result of record permission
@@ -37,16 +39,17 @@ class FlutterAudioRecorder4 {
   Future? get initialized => initRecorder;
   //Recording? get recording => recording;
 
-  FlutterAudioRecorder4({String? filepath, AudioFormat? audioFormat, int sampleRate = 16000 }) {
-    initRecorder = init(filepath, audioFormat, sampleRate);
+  FlutterAudioRecorder4({String? filepath, AudioFormat? audioFormat, int sampleRate = DEFAULT_SAMPLE_RATE }) {
+    initRecorder = init(filepath, audioFormat, sampleRate);//TODO - CHRIS - why doesn't the CTOR have to await?
   }
 
   Future init(String? filepath, AudioFormat? audioFormat, int sampleRate) async {
-    this.sampleRate = sampleRate;
 
     Map<String, String?> pathAndExtension = resolvePathAndExtension(filepath, audioFormat);
     filepath = pathAndExtension[NamedArguments.FILEPATH];
     extension = pathAndExtension[NamedArguments.EXTENSION];
+    this.sampleRate = sampleRate;
+
     validateFilepath(filepath);
 
     await invokeNativeInit();
@@ -59,7 +62,7 @@ class FlutterAudioRecorder4 {
     bool useExtensionAudioFormat = (extensionAudioFormat != null && audioFormat == null) ||
                                    (extensionAudioFormat != null && audioFormat != null &&  audioFormat == extensionAudioFormat);
     bool isPathExtensionValid = pathExtension?.isValidAudioExtension() ?? false;
-    
+
     /*
     - If preferred audio format is provided and the file's extension maps to a different audio format,
       then use the extension associated with the preferred audio format
@@ -80,8 +83,11 @@ class FlutterAudioRecorder4 {
   }
 
   void validateFilepath(String? filepath) async {
-    //TODO - CHRIS - I added the following exception, but might not be useful since source repo doesn't have it
-    if (filepath == null) throw Exception("Filepath cannot be null");
+
+    if (filepath == null) {
+      developer.log("Filepath is null", name:"com.tcubedstudios.flutter_audio_recorder4");
+      return;
+    }
 
     File file = LOCAL_FILE_SYSTEM.file(filepath);
     if (await file.exists()) {
@@ -101,19 +107,19 @@ class FlutterAudioRecorder4 {
       }
     );
 
-    RecorderState? recorderState;
+    RecorderState recorderState = RecorderState.UNSET;
     if (result != false) {
       Map<String, Object> response = Map.from(result);
       String? recorderStateFromResponse = response[NamedArguments.RECORDER_STATE] as String?;
-      recorderState = recorderStateFromResponse?.toRecorderState();
+      recorderState = recorderStateFromResponse?.toRecorderState() ?? RecorderState.UNSET;
     }
 
     recording = Recording()
       ..recorderState = recorderState
       ..audioMetering = AudioMetering(
-        averagePower: AudioMetering.DEFAULTS_AVERAGE_POWER,
-        peakPower: AudioMetering.DEFAULTS_PEAK_POWER,
-        meteringEnabled: AudioMetering.DEFAULTS_METERING_ENABLED
+        averagePower: AudioMetering.DEFAULTS_AVERAGE_POWER,     //TODO - CHRIS - why not grab this from the response?
+        peakPower: AudioMetering.DEFAULTS_PEAK_POWER,           //TODO - CHRIS - why not grab this from the response?
+        meteringEnabled: AudioMetering.DEFAULTS_METERING_ENABLED//TODO - CHRIS - why not grab this from the response?
       );
   }
 

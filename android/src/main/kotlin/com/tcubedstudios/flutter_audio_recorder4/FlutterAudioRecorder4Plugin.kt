@@ -17,6 +17,7 @@ import android.media.AudioFormat.ENCODING_PCM_16BIT
 import android.media.AudioRecord
 import android.media.MediaRecorder.AudioSource.MIC
 import android.os.Build.VERSION_CODES
+import com.tcubedstudios.flutter_audio_recorder4.AudioExtension.Companion.toAudioFormat
 import com.tcubedstudios.flutter_audio_recorder4.MethodCalls.*
 import com.tcubedstudios.flutter_audio_recorder4.MethodCalls.Companion.toMethodCall
 import com.tcubedstudios.flutter_audio_recorder4.RecorderState.*
@@ -59,7 +60,7 @@ class FlutterAudioRecorder4Plugin: PermissionRequestListenerActivityPlugin() {
   private var recordingThread: Thread? = null
   private var recorder: AudioRecord? = null
   private var filePath: String? = null
-  private var fileExtension: String? = null
+  private var extension: String? = null
 
   private val tempFileName: String?
     get() = filePath?.plus(".temp")
@@ -85,21 +86,26 @@ class FlutterAudioRecorder4Plugin: PermissionRequestListenerActivityPlugin() {
   //region Recorder
   private fun handleInit(call: MethodCall, result: Result) {
     resetRecorder()
-    
+
     filePath = call.argument<Any>(FILEPATH).toString()
-    fileExtension = call.argument<Any>(EXTENSION).toString()//TODO - CHRIS - use audioFormat?
+    extension = call.argument<Any>(EXTENSION).toString()
     sampleRate = call.argument<Any>(SAMPLE_RATE).toString().toLong()
     bufferSize = AudioRecord.getMinBufferSize(sampleRate.toInt(), CHANNEL_IN_MONO, ENCODING_PCM_16BIT)
-    recorderState = INITIALIZED
 
-    val initResult = java.util.HashMap<String, Any>()//TODO - CHRIS - is hashmap required?
-    initResult[DURATION] = 0
-    initResult[FILEPATH] = filePath
-    initResult[AUDIO_FORMAT] = fileExtension//TODO - CHRIS - use audioFormat?
-    initResult[PEAK_POWER] = peakPower
-    initResult[AVERAGE_POWER] = averagePower
-    initResult[METERING_ENABLED] = true
-    initResult[RECORDER_STATE] = recorderState
+    recorderState = if (filePath != null && extension != null) INITIALIZED else UNSET
+
+    val initResult = mapOf<String, Any?>(
+        FILEPATH to filePath,
+        EXTENSION to extension,
+        DURATION to 0,
+        AUDIO_FORMAT to extension?.toAudioFormat(),
+        RECORDER_STATE to recorderState,
+        METERING_ENABLED to true,
+        PEAK_POWER to peakPower,
+        AVERAGE_POWER to averagePower,
+        SAMPLE_RATE to sampleRate
+    )
+
     result.success(initResult)
   }
 
@@ -107,7 +113,7 @@ class FlutterAudioRecorder4Plugin: PermissionRequestListenerActivityPlugin() {
     val currentResult = java.util.HashMap<String, Any>()//TODO - CHRIS - is hashmap required?
     currentResult[DURATION] = duration * 1000
     currentResult[FILEPATH] = if (recorderState == STOPPED) filePath else tempFileName
-    currentResult[AUDIO_FORMAT] = fileExtension
+    currentResult[AUDIO_FORMAT] = extension
     currentResult[PEAK_POWER] = peakPower
     currentResult[AVERAGE_POWER] = averagePower
     currentResult[METERING_ENABLED] = true
@@ -158,7 +164,7 @@ class FlutterAudioRecorder4Plugin: PermissionRequestListenerActivityPlugin() {
       val currentResult = HashMap<String, Any>()
       currentResult[DURATION] = duration * 1000
       currentResult[FILEPATH] = filePath
-      currentResult[AUDIO_FORMAT] = fileExtension
+      currentResult[AUDIO_FORMAT] = extension
       currentResult[PEAK_POWER] = peakPower
       currentResult[AVERAGE_POWER] = averagePower
       currentResult[METERING_ENABLED] = true
