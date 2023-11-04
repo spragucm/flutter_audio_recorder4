@@ -1,23 +1,27 @@
 package com.tcubedstudios.flutter_audio_recorder4
 
+import NamedArguments.AUDIO_FORMAT
+import NamedArguments.AVERAGE_POWER
+import NamedArguments.DURATION
+import NamedArguments.EXTENSION
+import NamedArguments.FILEPATH
+import NamedArguments.METERING_ENABLED
+import NamedArguments.PEAK_POWER
+import NamedArguments.RECORDER_STATE
+import NamedArguments.SAMPLE_RATE
 import android.Manifest.permission.RECORD_AUDIO
 import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-import android.content.pm.PackageManager.PERMISSION_GRANTED
+import android.annotation.SuppressLint
 import android.media.AudioFormat.CHANNEL_IN_MONO
 import android.media.AudioFormat.ENCODING_PCM_16BIT
 import android.media.AudioRecord
 import android.media.MediaRecorder.AudioSource.MIC
-import android.os.Build.VERSION
 import android.os.Build.VERSION_CODES
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import com.tcubedstudios.flutter_audio_recorder4.MethodCalls.*
 import com.tcubedstudios.flutter_audio_recorder4.MethodCalls.Companion.toMethodCall
 import com.tcubedstudios.flutter_audio_recorder4.RecorderState.*
 import io.flutter.plugin.common.MethodCall
-import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.Result
-import io.flutter.plugin.common.PluginRegistry.Registrar
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileNotFoundException
@@ -32,16 +36,19 @@ class FlutterAudioRecorder4Plugin: PermissionRequestListenerActivityPlugin() {
   // If recorder is ever expected to operate in a background service, implement ServiceAware interface.
 
   companion object {
-    private const val LOG_NAME = "AndroidAudioRecorder"
-    private const val PERMISSIONS_REQUEST_CODE = 200
     private const val RECORDER_BPP: Byte = 16;
     private const val DEFAULTS_PEAK_POWER = -120.0
     private const val DEFAULTS_AVERAGE_POWER = -120.0
     private const val DEFAULTS_DATA_SIZE = 0L
     private const val DEFAULTS_BUFFER_SIZE = 1024
+    private const val IOS_POWER_LEVEL_FACTOR = 0.25// iOS factor : to match iOS power level
   }
 
-  private var allPermissionsGranted = false
+  override val permissionsToRequest = mapOf(
+    VERSION_CODES.BASE to listOf(RECORD_AUDIO),
+    VERSION_CODES.M to listOf(WRITE_EXTERNAL_STORAGE)
+  )
+
   private var sampleRate = 16000L//Khz
   private var dataSize = DEFAULTS_DATA_SIZE
   private var peakPower = DEFAULTS_PEAK_POWER
@@ -53,7 +60,7 @@ class FlutterAudioRecorder4Plugin: PermissionRequestListenerActivityPlugin() {
   private var recorder: AudioRecord? = null
   private var filePath: String? = null
   private var fileExtension: String? = null
-  private var result: Result? = null
+
   private val tempFileName: String?
     get() = filePath?.plus(".temp")
   private val duration: Int
@@ -61,10 +68,9 @@ class FlutterAudioRecorder4Plugin: PermissionRequestListenerActivityPlugin() {
 
   //region Handle method calls from flutter
   override fun onMethodCall(call: MethodCall, result: Result) {
-    this.result = result
+    super.onMethodCall(call, result)
 
     when(call.method.toMethodCall()) {
-      HAS_PERMISSIONS -> handleHasPermissions()
       INIT -> handleInit(call, result)
       CURRENT -> handleCurrent(call, result)
       START -> handleStart(call, result)
@@ -76,81 +82,40 @@ class FlutterAudioRecorder4Plugin: PermissionRequestListenerActivityPlugin() {
   }
   //endregion
 
-  //region Permission handling
-  private fun handleHasPermissions() {
-    if (areAllPermissionsGranted())
-      result?.success(true)
-    else
-      requestPermissions()
-  }
-
-  private fun areAllPermissionsGranted() : Boolean {
-    activity?.let { activity ->
-      return if (VERSION.SDK_INT >= VERSION_CODES.M) {
-        // if after [Marshmallow], we need to check permission on runtime
-        ContextCompat.checkSelfPermission(activity, RECORD_AUDIO) == PERMISSION_GRANTED &&
-        ContextCompat.checkSelfPermission(activity, WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED
-      } else {
-        ContextCompat.checkSelfPermission(activity, RECORD_AUDIO) == PERMISSION_GRANTED
-      }
-    }
-    return false
-  }
-
-  private fun requestPermissions() {
-    activity?.let { activity ->
-      val permissions = if(VERSION.SDK_INT >= VERSION_CODES.M) arrayOf(RECORD_AUDIO, WRITE_EXTERNAL_STORAGE) else arrayOf(RECORD_AUDIO)
-      ActivityCompat.requestPermissions(activity, permissions, PERMISSIONS_REQUEST_CODE)
-    }
-  }
-
-  override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray): Boolean {
-    if (requestCode == PERMISSIONS_REQUEST_CODE) {
-      allPermissionsGranted = grantResults.isNotEmpty() && grantResults.all { it == PERMISSION_GRANTED }
-      if (allPermissionsGranted) handleAllPermissionsGranted()
-      return true
-    }
-    return false
-  }
-
-  private fun handleAllPermissionsGranted() {
-    //Nothing to do now. Maybe in the future.
-  }
-  //endregion
-
   //region Recorder
   private fun handleInit(call: MethodCall, result: Result) {
     resetRecorder()
 
-    sampleRate = call.argument<Any>("sampleRate").toString().toLong()
-    filePath = call.argument<Any>("path").toString()
-    fileExtension = call.argument<Any>("extension").toString()//TODO - CHRIS - use audioFormat?
+    sampleRate = call.argument<Any>(SAMPLE_RATE).toString().toLong()
+    filePath = call.argument<Any>(FILEPATH).toString()
+    fileExtension = call.argument<Any>(EXTENSION).toString()//TODO - CHRIS - use audioFormat?
     bufferSize = AudioRecord.getMinBufferSize(sampleRate.toInt(), CHANNEL_IN_MONO, ENCODING_PCM_16BIT)
     recorderState = INITIALIZED
 
     val initResult = java.util.HashMap<String, Any>()//TODO - CHRIS - is hashmap required?
-    initResult["duration"] = 0
-    initResult["path"] = filePath
-    initResult["audioFormat"] = fileExtension//TODO - CHRIS - use audioFormat?
-    initResult["peakPower"] = peakPower
-    initResult["averagePower"] = averagePower
-    initResult["isMeteringEnabled"] = true
-    initResult["recorderState"] = recorderState
+    initResult[DURATION] = 0
+    initResult[FILEPATH] = filePath
+    initResult[AUDIO_FORMAT] = fileExtension//TODO - CHRIS - use audioFormat?
+    initResult[PEAK_POWER] = peakPower
+    initResult[AVERAGE_POWER] = averagePower
+    initResult[METERING_ENABLED] = true
+    initResult[RECORDER_STATE] = recorderState
     result.success(initResult)
   }
 
   private fun handleCurrent(call: MethodCall, result: Result) {
     val currentResult = java.util.HashMap<String, Any>()//TODO - CHRIS - is hashmap required?
-    currentResult["duration"] = duration * 1000
-    currentResult["path"] = if (recorderState == STOPPED) filePath else tempFileName
-    currentResult["audioFormat"] = fileExtension
-    currentResult["peakPower"] = peakPower
-    currentResult["averagePower"] = averagePower
-    currentResult["isMeteringEnabled"] = true
-    currentResult["recorderState"] = recorderState
+    currentResult[DURATION] = duration * 1000
+    currentResult[FILEPATH] = if (recorderState == STOPPED) filePath else tempFileName
+    currentResult[AUDIO_FORMAT] = fileExtension
+    currentResult[PEAK_POWER] = peakPower
+    currentResult[AVERAGE_POWER] = averagePower
+    currentResult[METERING_ENABLED] = true
+    currentResult[RECORDER_STATE] = recorderState
     result.success(currentResult)
   }
 
+  @SuppressLint("MissingPermission")//No need to include in Manifest because programmatically requested
   private fun handleStart(call: MethodCall, result: Result) {
     recorder = AudioRecord(MIC, sampleRate.toInt(), CHANNEL_IN_MONO, ENCODING_PCM_16BIT, bufferSize)
 
@@ -180,7 +145,7 @@ class FlutterAudioRecorder4Plugin: PermissionRequestListenerActivityPlugin() {
     recorderState = RECORDING
     recorder?.startRecording()
     startThread()
-    result.success(null)
+    result.success(null)//TODO - CHRIS - why null vs success?
   }
 
   private fun handleStop(call: MethodCall, result: Result) {
@@ -191,13 +156,13 @@ class FlutterAudioRecorder4Plugin: PermissionRequestListenerActivityPlugin() {
 
       // Return Recording Object
       val currentResult = HashMap<String, Any>()
-      currentResult["duration"] = duration * 1000
-      currentResult["path"] = filePath
-      currentResult["audioFormat"] = fileExtension
-      currentResult["peakPower"] = peakPower
-      currentResult["averagePower"] = averagePower
-      currentResult["isMeteringEnabled"] = true
-      currentResult["recorderState"] = recorderState
+      currentResult[DURATION] = duration * 1000
+      currentResult[FILEPATH] = filePath
+      currentResult[AUDIO_FORMAT] = fileExtension
+      currentResult[PEAK_POWER] = peakPower
+      currentResult[AVERAGE_POWER] = averagePower
+      currentResult[METERING_ENABLED] = true
+      currentResult[RECORDER_STATE] = recorderState
 
       resetRecorder()
       recordingThread = null
@@ -250,9 +215,7 @@ class FlutterAudioRecorder4Plugin: PermissionRequestListenerActivityPlugin() {
     averagePower = if (sampleVal == 0.toShort() || escapeRecorderStateList.contains(recorderState)) {
       DEFAULTS_AVERAGE_POWER //to match iOS silent case
     } else {
-      // iOS factor : to match iOS power level
-      val iOsFactor = 0.25
-      20 * ln(abs(sampleVal.toDouble()) / 32768.0) * iOsFactor
+      20 * ln(abs(sampleVal.toDouble()) / 32768.0) * IOS_POWER_LEVEL_FACTOR
     }
 
     peakPower = averagePower
@@ -302,12 +265,12 @@ class FlutterAudioRecorder4Plugin: PermissionRequestListenerActivityPlugin() {
 
   @Throws (IOException::class)
   private fun writeWaveFileHeader(
-          out: FileOutputStream,
-          totalAudioLength: Long,
-          totalDataLength: Long,
-          longSampleRate: Long,
-          channels: Int,
-          byteRate: Long
+    out: FileOutputStream,
+    totalAudioLength: Long,
+    totalDataLength: Long,
+    longSampleRate: Long,
+    channels: Int,
+    byteRate: Long
   ) {
     try {
       val header = ByteArray(44)
