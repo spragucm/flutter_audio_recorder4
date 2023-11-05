@@ -17,7 +17,8 @@ import 'dart:developer' as developer;
 class FlutterAudioRecorder4 {
 
   static const int DEFAULT_CHANNEL = 0;
-  static const MethodChannel CHANNEL = MethodChannel('flutter_audio_recorder');
+  static const String METHOD_CHANNEL_NAME = "flutter_audio_recorder4";
+  static const MethodChannel METHOD_CHANNEL = MethodChannel(METHOD_CHANNEL_NAME);
   static const AudioFormat DEFAULT_AUDIO_FORMAT = AudioFormat.AAC;
   static String DEFAULT_EXTENSION = DEFAULT_AUDIO_FORMAT.extension;
   static const int DEFAULT_SAMPLE_RATE = 16000;//khz
@@ -99,7 +100,7 @@ class FlutterAudioRecorder4 {
   }
 
   Future<void> invokeNativeInit() async {
-    var result = await CHANNEL.invokeMethod(
+    var result = await METHOD_CHANNEL.invokeMethod(
       NativeMethodCall.INIT.methodName,
       {
         NamedArguments.FILEPATH: filepath,
@@ -128,7 +129,7 @@ class FlutterAudioRecorder4 {
   /// Returns the result of current recording status
   /// Metering level, Duration, Status...
   Future<Recording?> current({int channel = DEFAULT_CHANNEL}) async {
-    var result = await CHANNEL.invokeMethod(
+    var result = await METHOD_CHANNEL.invokeMethod(
         NativeMethodCall.CURRENT.methodName,
         {
           NamedArguments.CHANNEL:channel                          //TODO - CHRIS - why pass channel why Android not using it?
@@ -150,25 +151,25 @@ class FlutterAudioRecorder4 {
   /// Once executed, audio recording will start working and
   /// a file will be generated in user's file system
   Future start() async {
-    return CHANNEL.invokeMethod(NativeMethodCall.START.methodName);
+    return METHOD_CHANNEL.invokeMethod(NativeMethodCall.START.methodName);
   }
 
   /// Request currently [Recording] recording to be [Paused]
   /// Note: Use [current] to get latest state of recording after [pause]
   Future pause() async {
-    return CHANNEL.invokeMethod(NativeMethodCall.PAUSE.methodName);
+    return METHOD_CHANNEL.invokeMethod(NativeMethodCall.PAUSE.methodName);
   }
 
   /// Request currently [Paused] recording to continue
   Future resume() async {
-    return CHANNEL.invokeMethod(NativeMethodCall.RESUME.methodName);
+    return METHOD_CHANNEL.invokeMethod(NativeMethodCall.RESUME.methodName);
   }
 
   /// Request the recording to stop
   /// Once its stopped, the recording file will be finalized
   /// and will not be start, resume, pause anymore.
   Future<Recording?> stop() async {
-    var result = await CHANNEL.invokeMethod(NativeMethodCall.STOP.methodName);
+    var result = await METHOD_CHANNEL.invokeMethod(NativeMethodCall.STOP.methodName);
 
     if (result != null) {
       Map<String, Object> response = Map.from(result);
