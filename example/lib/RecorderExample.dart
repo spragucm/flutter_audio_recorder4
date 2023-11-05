@@ -161,8 +161,7 @@ class RecorderExampleState extends State<RecorderExample> {
     if (filepath == null) {
       developer.log("OnPlayAudio filepath is null");
     } else {
-      AudioPlayer audioPlayer = AudioPlayer();
-      await audioPlayer.play(filepath, isLocal: true);
+      await AudioPlayer().play(DeviceFileSource(filepath));
     }
   }
 
