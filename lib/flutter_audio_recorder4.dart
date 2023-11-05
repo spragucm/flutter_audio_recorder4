@@ -48,8 +48,8 @@ class FlutterAudioRecorder4 {
   Future init(String? filepath, AudioFormat? audioFormat, int sampleRate) async {
 
     Map<String, String?> pathAndExtension = resolvePathAndExtension(filepath, audioFormat);
-    filepath = pathAndExtension[NamedArguments.FILEPATH];
-    extension = pathAndExtension[NamedArguments.EXTENSION];
+    this.filepath = pathAndExtension[NamedArguments.FILEPATH];
+    this.extension = pathAndExtension[NamedArguments.EXTENSION];
     this.sampleRate = sampleRate;
 
     validateFilepath(filepath);
