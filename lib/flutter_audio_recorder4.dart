@@ -26,6 +26,7 @@ class FlutterAudioRecorder4 {
   /// Returns the result of record permission
   /// if not determined(app first launch),
   /// this will ask user to whether grant the permission
+  /// TODO - CHRIS - rely on permissions_handler instead of our own code
   static Future<bool?> get hasPermissions async {
     return await CHANNEL.invokeMethod(NativeMethodCall.HAS_PERMISSIONS.methodName);
   }
@@ -35,11 +36,11 @@ class FlutterAudioRecorder4 {
   Recording? recording;
   int? sampleRate;
 
-  Future? initRecorder;
-  Future? get initialized => initRecorder;
-  //Recording? get recording => recording;
+  late Future initRecorder;
+  Future get initialized => initRecorder;//TODO - CHRIS - still useful?
+  //Recording? get recording => recording;//TODO - CHRIS - still useful?
 
-  FlutterAudioRecorder4({String? filepath, AudioFormat? audioFormat, int sampleRate = DEFAULT_SAMPLE_RATE }) {
+  FlutterAudioRecorder4(String? filepath, {AudioFormat? audioFormat, int sampleRate = DEFAULT_SAMPLE_RATE }) {
     initRecorder = init(filepath, audioFormat, sampleRate);//TODO - CHRIS - why doesn't the CTOR have to await?
   }
 

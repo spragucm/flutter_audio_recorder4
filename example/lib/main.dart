@@ -3,8 +3,11 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_audio_recorder4/flutter_audio_recorder4.dart';
+import 'package:flutter_audio_recorder4_example/RecorderExample.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();//TODO - CHRIS - is this necessary?
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);//TODO - CHRIS - is this necessary?
   runApp(const MyApp());
 }
 
@@ -16,8 +19,9 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+
   String _platformVersion = 'Unknown';
-  final _flutterAudioRecorder4Plugin = FlutterAudioRecorder4();
+  final _flutterAudioRecorder4Plugin = FlutterAudioRecorder4(null);
 
   @override
   void initState() {
@@ -52,11 +56,11 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('Plugin example app'),
+          title: const Text('Flutter Audio Recorder 4 v1.0.0'),//TODO - CHRIS - retrieve version number from yaml
         ),
-        body: Center(
-          child: Text('Running on: $_platformVersion\n'),
-        ),
+        body: const SafeArea(
+          child: RecorderExample()
+        )
       ),
     );
   }
