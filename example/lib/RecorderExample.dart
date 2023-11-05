@@ -32,6 +32,7 @@ class RecorderExampleState extends State<RecorderExample> {
   RecorderState recorderState = RecorderState.UNSET;
   String platformVersion = "";
   String libraryVersion = "TODO";
+  bool hasPermissions = false;
 
   @override
   void initState() {
@@ -42,7 +43,8 @@ class RecorderExampleState extends State<RecorderExample> {
 
   void init() async {
     try {
-      if (await FlutterAudioRecorder4.hasPermissions ?? false) {
+      hasPermissions = await FlutterAudioRecorder4.hasPermissions ?? false;
+      if (hasPermissions) {
         handleHasPermissions();
       } else {
         handleDoesNotHavePermissions();
@@ -173,6 +175,7 @@ class RecorderExampleState extends State<RecorderExample> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: <Widget>[
+            buildHasPermissionsRow(),
             buildVersionsRow(),
             buildRecorderRow(),
             buildRecorderStateRow(),
@@ -188,6 +191,8 @@ class RecorderExampleState extends State<RecorderExample> {
       )
     );
   }
+
+  Widget buildHasPermissionsRow() => Text("Has permissions:$hasPermissions");
 
   Widget buildVersionsRow() => Text('Library version $libraryVersion running on platform version $platformVersion');
 
