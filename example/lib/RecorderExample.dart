@@ -43,16 +43,22 @@ class RecorderExampleState extends State<RecorderExample> {
 
   void init() async {
     try {
-      hasPermissions = await FlutterAudioRecorder4.hasPermissions ?? false;
-      if (hasPermissions) {
-        handleHasPermissions();
+      if (await FlutterAudioRecorder4.hasPermissions ?? false) {
+        await handleHasPermissions();
       } else {
         handleDoesNotHavePermissions();
       }
-      platformVersion = await recorder?.getPlatformVersion() ?? "Unknown platform version";
+      updatePlatformVersion();
     } catch (exception) {
       developer.log("RecorderExample init exception:$exception");
     }
+  }
+
+  Future<void> updatePlatformVersion() async {
+    var platformVersion = await recorder?.getPlatformVersion() ?? "Unknown platform version";
+    setState((){
+      this.platformVersion = platformVersion;
+    });
   }
 
   Future<void> handleHasPermissions() async {
@@ -69,25 +75,30 @@ class RecorderExampleState extends State<RecorderExample> {
     // .wav <---> AudioFormat.WAV
     // .mp4 .m4a .aac <---> AudioFormat.AAC
     // AudioFormat is optional, if given value, will overwrite path extension when there is conflicts.
-    recorder = FlutterAudioRecorder4(customPath, audioFormat: AudioFormat.AAC);
+    var recorder = FlutterAudioRecorder4(customPath, audioFormat: AudioFormat.AAC);
 
     try {
-      await recorder?.initialized;
+      await recorder.initialized;
+      var recording = await recorder.current(channel: 0);
+      developer.log("Recording:$recording");
     } catch(exception) {
       developer.log("Initialized exception:$exception");
     }
-    var recording = await recorder?.current(channel: 0);
-    developer.log("Recording:$recording");
 
     // Recorder should now be INITIALIZED if everything is working
     setState(() {
+      this.recorder = recorder;
       this.recording = recording;
       recorderState = recording?.recorderState ?? RecorderState.UNSET;
+      hasPermissions = true;
       developer.log("RecorderState:$recorderState");
     });
   }
 
   void handleDoesNotHavePermissions() {
+    setState(() {
+      hasPermissions = false;
+    });
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("You must accept all permissions"))
     );

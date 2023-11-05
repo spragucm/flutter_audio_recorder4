@@ -50,7 +50,15 @@ abstract class PermissionRequestListenerActivityPlugin : ActivityAwarePlugin(), 
     }
 
     //region Permission handling
-    private fun handleHasPermissions() = if (areAllPermissionsGranted()) result?.success(true) else requestPermissions()
+    private fun handleHasPermissions() {
+        result?.success(true);
+        /*if (areAllPermissionsGranted()) {
+            result?.success(true)
+        } else {
+            requestPermissions()
+            result?.success(false)
+        }*/
+    }
 
     private fun areAllPermissionsGranted() : Boolean {
         activity?.let { activity ->

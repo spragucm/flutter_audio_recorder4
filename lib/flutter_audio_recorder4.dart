@@ -29,7 +29,7 @@ class FlutterAudioRecorder4 {
   /// this will ask user to whether grant the permission
   /// TODO - CHRIS - rely on permissions_handler instead of our own code
   static Future<bool?> get hasPermissions async {
-    return await CHANNEL.invokeMethod(NativeMethodCall.HAS_PERMISSIONS.methodName);
+    return await METHOD_CHANNEL.invokeMethod(NativeMethodCall.HAS_PERMISSIONS.methodName);
   }
 
   String? filepath;
