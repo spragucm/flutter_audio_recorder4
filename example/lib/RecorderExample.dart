@@ -209,44 +209,42 @@ class RecorderExampleState extends State<RecorderExample> {
 
   Widget buildStopButton() => TextButton(
     onPressed: recorderState != RecorderState.UNSET ? stop : null,
-    style: ButtonStyle(
-      backgroundColor: MaterialStateProperty.all<Color>(
-        Colors.blueAccent.withOpacity(0.5),
-      )
-    ),
-    child: const Text("Stop", style: TextStyle(color: Colors.white))
+    style: buildButtonStyle(),
+    child: Text("Stop", style: buildButtonTextStyle())
   );
 
   Widget buildPlayButton() => TextButton(
     onPressed: onPlayAudio,
-    style: ButtonStyle(
-      backgroundColor: MaterialStateProperty.all<Color>(
-        Colors.blueAccent.withOpacity(0.5),
-      )
-    ),
-    child: const Text("Play", style: TextStyle(color: Colors.white))
+    style: buildButtonStyle(),
+    child: Text("Play", style: buildButtonTextStyle())
   );
 
   Widget buildNextRecorderStateButton() {
     return Padding(
-        padding: buildEdgeInsets(),
-        child: TextButton(
-          onPressed: (){
-            switch(recorderState) {
-              case RecorderState.INITIALIZED: start();
-              case RecorderState.RECORDING: pause();
-              case RecorderState.PAUSED: resume();
-              case RecorderState.STOPPED: init();
-              default: break;
-            }
-          },
-          child: Text(
-            recorderState.nexStateDisplayText,
-            style: const TextStyle(color: Colors.white)
-          )
-        )
+      padding: buildEdgeInsets(),
+      child: TextButton(
+        onPressed: (){
+          switch(recorderState) {
+            case RecorderState.INITIALIZED: start();
+            case RecorderState.RECORDING: pause();
+            case RecorderState.PAUSED: resume();
+            case RecorderState.STOPPED: init();
+            default: break;
+          }
+        },
+        style: buildButtonStyle(),
+        child: Text(recorderState.nexStateDisplayText, style: buildButtonTextStyle())
+      )
     );
   }
+
+  ButtonStyle buildButtonStyle() => ButtonStyle(
+      backgroundColor: MaterialStateProperty.all<Color>(
+        Colors.blueAccent.withOpacity(0.5),
+      )
+  );
+
+  TextStyle buildButtonTextStyle() => const TextStyle(color: Colors.white);
 
   Widget buildFilepathRow() => Text("Filepath:${recording?.filepath}");
   Widget buildExtensionRow() => Text("Extension:${recording?.extension}");
