@@ -98,8 +98,8 @@ class FlutterAudioRecorder4Plugin: PermissionRequestListenerActivityPlugin() {
         FILEPATH to filePath,
         EXTENSION to extension,
         DURATION to 0,
-        AUDIO_FORMAT to extension?.toAudioFormat(),
-        RECORDER_STATE to recorderState,
+        AUDIO_FORMAT to extension?.toAudioFormat()?.name,
+        RECORDER_STATE to recorderState.value,
         METERING_ENABLED to true,
         PEAK_POWER to peakPower,
         AVERAGE_POWER to averagePower,
@@ -107,6 +107,7 @@ class FlutterAudioRecorder4Plugin: PermissionRequestListenerActivityPlugin() {
     )
 
     result.success(initResult)
+    result.success(true)
   }
 
   private fun handleCurrent(call: MethodCall, result: Result) {

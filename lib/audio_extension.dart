@@ -19,7 +19,7 @@ enum AudioExtension {
 extension AudioExtensionUtils on String? {
   AudioFormat? toAudioFormat() {
     for (var value in AudioExtension.values) {
-      if (this == value.extension) {
+      if (this?.toLowerCase() == value.extension.substring(1).toLowerCase()) {
         return value.audioFormat;
       }
     }

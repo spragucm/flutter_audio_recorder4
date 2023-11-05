@@ -99,30 +99,23 @@ class FlutterAudioRecorder4 {
     }
   }
 
-  Future<void> invokeNativeInit() async {
-    var result = await METHOD_CHANNEL.invokeMethod(
-      NativeMethodCall.INIT.methodName,
-      {
-        NamedArguments.FILEPATH: filepath,
-        NamedArguments.EXTENSION: extension,
-        NamedArguments.SAMPLE_RATE: sampleRate
-      }
-    );
-
-    RecorderState recorderState = RecorderState.UNSET;
-    if (result != false) {
-      Map<String, Object> response = Map.from(result);
-      String? recorderStateFromResponse = response[NamedArguments.RECORDER_STATE] as String?;
-      recorderState = recorderStateFromResponse?.toRecorderState() ?? RecorderState.UNSET;
-    }
-
-    recording = Recording()
-      ..recorderState = recorderState
-      ..audioMetering = AudioMetering(
-        averagePower: AudioMetering.DEFAULTS_AVERAGE_POWER,     //TODO - CHRIS - why not grab this from the response?
-        peakPower: AudioMetering.DEFAULTS_PEAK_POWER,           //TODO - CHRIS - why not grab this from the response?
-        meteringEnabled: AudioMetering.DEFAULTS_METERING_ENABLED//TODO - CHRIS - why not grab this from the response?
+  Future<bool> invokeNativeInit() async {
+    try {
+      var result = await METHOD_CHANNEL.invokeMethod(
+          NativeMethodCall.INIT.methodName,
+          {
+            NamedArguments.FILEPATH: filepath,
+            NamedArguments.EXTENSION: extension,
+            NamedArguments.SAMPLE_RATE: sampleRate
+          }
       );
+
+      recording = result != false ? Map.from(result).toRecording() : Recording.createDefaultRecording();
+
+      return true;
+    } catch(exception) {
+      return false;
+    }
   }
 
   /// Ask for current status of recording

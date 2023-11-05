@@ -69,10 +69,13 @@ class RecorderExampleState extends State<RecorderExample> {
     // .wav <---> AudioFormat.WAV
     // .mp4 .m4a .aac <---> AudioFormat.AAC
     // AudioFormat is optional, if given value, will overwrite path extension when there is conflicts.
-    recorder = FlutterAudioRecorder4(customPath, audioFormat: AudioFormat.WAV);
+    recorder = FlutterAudioRecorder4(customPath, audioFormat: AudioFormat.AAC);
 
-    await recorder?.initialized;
-
+    try {
+      await recorder?.initialized;
+    } catch(exception) {
+      developer.log("Initialized exception:$exception");
+    }
     var recording = await recorder?.current(channel: 0);
     developer.log("Recording:$recording");
 
