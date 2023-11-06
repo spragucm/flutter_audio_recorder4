@@ -1,5 +1,7 @@
 package com.tcubedstudios.flutter_audio_recorder4
 
+import android.Manifest
+import android.Manifest.permission.POST_NOTIFICATIONS
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.os.Build
 import androidx.core.app.ActivityCompat
@@ -23,10 +25,6 @@ abstract class PermissionRequestListenerActivityPlugin(
 ) : ActivityAwarePlugin(registrar, methodChannel), PluginRegistry.RequestPermissionsResultListener {
 
     open val permissionsRequestCode = 200
-    var allPermissionsGrantedTemp: Boolean? = null
-
-    //Android version:permission
-    //The version indicates the android version to start requesting the given permission
     abstract val permissionsToRequest: List<PermissionToRequest>
 
     val uniquePermissionsToRequest: Set<String>
@@ -75,8 +73,8 @@ abstract class PermissionRequestListenerActivityPlugin(
         }
     }
 
-    fun callFlutterHasPermissions() {
-        //methodChannel?.invokeMethod("", "")
+    private fun callFlutterHasPermissions(allGranted: Boolean) {
+        methodChannel?.invokeMethod(FlutterMethodCalls.HAS_PERMISSIONS.methodName, allGranted)
     }
     //endregion
 
@@ -93,6 +91,7 @@ abstract class PermissionRequestListenerActivityPlugin(
     private fun revokePermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             uniquePermissionsToRequest.forEach { permission ->
+                //TODO - CHRIS - would be nice if this returned isRevoked value
                 activity?.revokeSelfPermissionOnKill(permission)
             }
             result?.success(true)
@@ -118,8 +117,13 @@ abstract class PermissionRequestListenerActivityPlugin(
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray): Boolean {
         var isHandled = false
         if (requestCode == permissionsRequestCode) {
-            //Setting allPermissionsGrantedTemp to a non null will allow a result to be returned to flutter
-            allPermissionsGrantedTemp = grantResults.isNotEmpty() && grantResults.all { it == PERMISSION_GRANTED }
+
+            val allGranted = grantResults.isNotEmpty() && grantResults.all { it == PERMISSION_GRANTED }
+            if (allGranted) {
+                callFlutterHasPermissions(true)
+            } else {
+                callFlutterHasPermissions(false)
+            }
 
             isHandled = true
         }

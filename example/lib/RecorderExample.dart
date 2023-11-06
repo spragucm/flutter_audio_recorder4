@@ -43,11 +43,9 @@ class RecorderExampleState extends State<RecorderExample> {
 
   void init() async {
     try {
-      if (await FlutterAudioRecorder4.hasPermissions ?? false) {
-        await handleHasPermissions();
-      } else {
-        handleDoesNotHavePermissions();
-      }
+      //TODO - CHRIS - I don't like the static callback
+      FlutterAudioRecorder4.hasPermissionsCallback = hasPermissionsCallback;
+      hasPermissionsCallback(await FlutterAudioRecorder4.hasPermissions ?? false);
       updatePlatformVersion();
     } catch (exception) {
       developer.log("RecorderExample init exception:$exception");
@@ -59,6 +57,14 @@ class RecorderExampleState extends State<RecorderExample> {
     setState((){
       this.platformVersion = platformVersion;
     });
+  }
+
+  Future<void> hasPermissionsCallback(hasPermissions) async {
+    if (hasPermissions) {
+      await handleHasPermissions();
+    } else {
+      handleDoesNotHavePermissions();
+    }
   }
 
   Future<void> handleHasPermissions() async {

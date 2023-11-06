@@ -1,5 +1,6 @@
 import 'package:flutter_audio_recorder4/recording.dart';
 
+import 'flutter_method_call.dart';
 import 'named_arguments.dart';
 import 'recorder_state.dart';
 import 'audio_extension.dart';
@@ -24,6 +25,9 @@ class FlutterAudioRecorder4 {
   static const int DEFAULT_SAMPLE_RATE = 16000;//khz
   static LocalFileSystem LOCAL_FILE_SYSTEM = const LocalFileSystem();
 
+  //TODO - CHRIS - I don't like the static methods
+  static Function(bool hasPermissions)? hasPermissionsCallback;
+
   /// Returns the result of record permission
   /// if not determined(app first launch),
   /// this will ask user to whether grant the permission
@@ -45,8 +49,15 @@ class FlutterAudioRecorder4 {
   Future get initialized => initRecorder;//TODO - CHRIS - still useful?
   //Recording? get recording => recording;//TODO - CHRIS - still useful?
 
-  FlutterAudioRecorder4(String? filepath, {AudioFormat? audioFormat, int sampleRate = DEFAULT_SAMPLE_RATE }) {
-    initRecorder = init(filepath, audioFormat, sampleRate);//TODO - CHRIS - why doesn't the CTOR have to await?
+  FlutterAudioRecorder4(
+      String? filepath,
+      {
+        AudioFormat? audioFormat,
+        int sampleRate = DEFAULT_SAMPLE_RATE
+      }
+  ) {
+    initRecorder = init(filepath, audioFormat, sampleRate);
+    METHOD_CHANNEL.setMethodCallHandler(this.methodHandler);
   }
 
   Future init(String? filepath, AudioFormat? audioFormat, int sampleRate) async {
@@ -182,5 +193,17 @@ class FlutterAudioRecorder4 {
   //TODO - CHRIS - what is this?
   Future<String?> getPlatformVersion() {
     return FlutterAudioRecorder4Platform.instance.getPlatformVersion();
+  }
+  
+  Future<void> methodHandler(MethodCall call) async {
+    if (call.method == FlutterMethodCall.HAS_PERMISSIONS.methodName) {
+      handleHasPermissions(call.arguments);
+    } else {
+      developer.log("Unhandled method call:${call.method}");
+    }
+  }
+
+  void handleHasPermissions(bool hasPermissions) {
+    hasPermissionsCallback?.call(hasPermissions);
   }
 }
