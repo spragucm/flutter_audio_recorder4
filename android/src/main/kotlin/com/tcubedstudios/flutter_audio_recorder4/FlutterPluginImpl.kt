@@ -8,13 +8,15 @@ import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry
 
-abstract class FlutterPluginImpl : FlutterPlugin, MethodCallHandler {
+abstract class FlutterPluginImpl(val registrar: PluginRegistry.Registrar? = null) : FlutterPlugin, MethodCallHandler {
 
     companion object {
+        // Android plugin v1 binding
         @JvmStatic
         fun registerWith(registrar: PluginRegistry.Registrar) {
             val channel = MethodChannel(registrar.messenger(), "flutter_audio_recorder4")
-            channel.setMethodCallHandler(FlutterAudioRecorder4Plugin())//TODO - CHRIS - need to pass registrar for older projects
+            val plugin = FlutterAudioRecorder4Plugin(registrar)
+            channel.setMethodCallHandler(plugin)
         }
     }
 
@@ -27,6 +29,7 @@ abstract class FlutterPluginImpl : FlutterPlugin, MethodCallHandler {
     private lateinit var channel : MethodChannel
 
     //region Flutter plugin binding
+    // Android plugin v2 binding
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         channel = MethodChannel(flutterPluginBinding.binaryMessenger, "flutter_audio_recorder4")
         channel.setMethodCallHandler(this)

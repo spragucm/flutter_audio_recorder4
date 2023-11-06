@@ -1,5 +1,8 @@
 package com.tcubedstudios.flutter_audio_recorder4
 
+import android.Manifest.permission.RECORD_AUDIO
+import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+import android.app.Activity
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.os.Build
 import androidx.core.app.ActivityCompat
@@ -10,8 +13,12 @@ import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.PluginRegistry
+import io.flutter.plugin.common.PluginRegistry.Registrar
 
-abstract class PermissionRequestListenerActivityPlugin : ActivityAwarePlugin(), PluginRegistry.RequestPermissionsResultListener {
+//Registrar is passed for Android plugin v1 compatibility
+abstract class PermissionRequestListenerActivityPlugin(
+    registrar: Registrar? = null
+) : ActivityAwarePlugin(registrar), PluginRegistry.RequestPermissionsResultListener {
 
     open val permissionsRequestCode = 200
     var allPermissionsGranted = false
@@ -23,7 +30,13 @@ abstract class PermissionRequestListenerActivityPlugin : ActivityAwarePlugin(), 
     val uniquePermissionsToRequest: Set<String>
         get() = permissionsToRequest.filter { it.key <=  Build.VERSION.SDK_INT }.flatMap { it.value }.toSet()
 
-    //region Add/Remove listener based on lifecycle
+    //region region Add/Remove listener based on lifecycle (Android plugin v1)
+    init {
+        registrar?.addRequestPermissionsResultListener(this)
+    }
+    //endregion
+
+    //region Add/Remove listener based on lifecycle (Android plugin v2)
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
         super.onAttachedToActivity(binding)
         binding.addRequestPermissionsResultListener(this)
@@ -44,34 +57,43 @@ abstract class PermissionRequestListenerActivityPlugin : ActivityAwarePlugin(), 
         super.onDetachedFromActivity()
     }
     //endregion
+
+    //region Flutter exchange handling
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         super.onMethodCall(call, result)
         if (call.method.toMethodCall() == HAS_PERMISSIONS) handleHasPermissions()
     }
+    //endregion
 
     //region Permission handling
     private fun handleHasPermissions() {
-        result?.success(true);
-        /*if (areAllPermissionsGranted()) {
+        if (areAllPermissionsGranted()) {
             result?.success(true)
         } else {
             requestPermissions()
             result?.success(false)
-        }*/
+        }
     }
 
     private fun areAllPermissionsGranted() : Boolean {
         activity?.let { activity ->
-            return uniquePermissionsToRequest.all { permission ->
-                ContextCompat.checkSelfPermission(activity, permission) == PERMISSION_GRANTED
+
+            listOf(RECORD_AUDIO, WRITE_EXTERNAL_STORAGE).forEach { permission ->
+                if(ContextCompat.checkSelfPermission(activity, permission) != PERMISSION_GRANTED)
+                    return false
             }
+            return true
+            /*return uniquePermissionsToRequest.all { permission ->
+                ContextCompat.checkSelfPermission(activity, permission) == PERMISSION_GRANTED
+            }*/
         }
         return false
     }
 
     private fun requestPermissions() {
         activity?.let { activity ->
-            ActivityCompat.requestPermissions(activity, uniquePermissionsToRequest.toTypedArray(), permissionsRequestCode)
+            ActivityCompat.requestPermissions(activity, listOf(RECORD_AUDIO, WRITE_EXTERNAL_STORAGE).toTypedArray(), permissionsRequestCode)
+            //ActivityCompat.requestPermissions(activity, uniquePermissionsToRequest.toTypedArray(), permissionsRequestCode)
         }
     }
 

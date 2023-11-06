@@ -192,6 +192,7 @@ class RecorderExampleState extends State<RecorderExample> {
             buildHasPermissionsRow(),
             buildVersionsRow(),
             buildRecorderRow(),
+            buildVerticalSpacer(),
             buildRecorderStateRow(),
             buildAveragePowerRow(),
             buildPeakPowerRow(),
@@ -206,7 +207,13 @@ class RecorderExampleState extends State<RecorderExample> {
     );
   }
 
-  Widget buildHasPermissionsRow() => Text("Has permissions:$hasPermissions");
+  Widget buildHasPermissionsRow() => Row(
+    mainAxisAlignment: MainAxisAlignment.spaceAround,
+    children: [
+      buildGetPermissionsButton(),
+      Text("Has permissions:$hasPermissions"),
+    ]
+  );
 
   Widget buildVersionsRow() => Text('Library version $libraryVersion running on platform version $platformVersion');
 
@@ -216,7 +223,6 @@ class RecorderExampleState extends State<RecorderExample> {
       children: <Widget>[
         buildNextRecorderStateButton(),
         buildStopButton(),
-        buildVerticalSpacer(),
         buildPlayButton()
       ]
     );
@@ -227,9 +233,15 @@ class RecorderExampleState extends State<RecorderExample> {
   Widget buildVerticalSpacer() => const SizedBox(width: 8);
 
   Widget buildStopButton() => TextButton(
-    onPressed: recorderState != RecorderState.UNSET ? stop : null,
+      onPressed: recorderState != RecorderState.UNSET ? stop : null,
+      style: buildButtonStyle(),
+      child: Text("Stop", style: buildButtonTextStyle())
+  );
+
+  Widget buildGetPermissionsButton() => TextButton(
+    onPressed: (){ FlutterAudioRecorder4.hasPermissions; },
     style: buildButtonStyle(),
-    child: Text("Stop", style: buildButtonTextStyle())
+    child: Text("Request Permissions", style: buildButtonTextStyle())
   );
 
   Widget buildPlayButton() => TextButton(

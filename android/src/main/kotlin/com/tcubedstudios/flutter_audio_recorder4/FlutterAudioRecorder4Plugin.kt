@@ -12,6 +12,7 @@ import com.tcubedstudios.flutter_audio_recorder4.NamedArguments.SAMPLE_RATE
 import android.Manifest.permission.RECORD_AUDIO
 import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.media.AudioFormat.CHANNEL_IN_MONO
 import android.media.AudioFormat.ENCODING_PCM_16BIT
 import android.media.AudioRecord
@@ -23,6 +24,7 @@ import com.tcubedstudios.flutter_audio_recorder4.MethodCalls.Companion.toMethodC
 import com.tcubedstudios.flutter_audio_recorder4.RecorderState.*
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel.Result
+import io.flutter.plugin.common.PluginRegistry.Registrar
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileNotFoundException
@@ -31,7 +33,8 @@ import java.io.IOException
 import kotlin.math.abs
 import kotlin.math.ln
 
-class FlutterAudioRecorder4Plugin: PermissionRequestListenerActivityPlugin() {
+//Registrar is passed for Android plugin v1 compatibility
+class FlutterAudioRecorder4Plugin(registrar: Registrar? = null) : PermissionRequestListenerActivityPlugin(registrar) {
 
   //TODO - CHRIS
   // If recorder is ever expected to operate in a background service, implement ServiceAware interface.
@@ -107,7 +110,6 @@ class FlutterAudioRecorder4Plugin: PermissionRequestListenerActivityPlugin() {
     )
 
     result.success(initResult)
-    result.success(true)
   }
 
   private fun handleCurrent(call: MethodCall, result: Result) {
