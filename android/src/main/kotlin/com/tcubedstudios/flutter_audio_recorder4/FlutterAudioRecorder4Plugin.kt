@@ -48,9 +48,9 @@ class FlutterAudioRecorder4Plugin(registrar: Registrar? = null) : PermissionRequ
     private const val IOS_POWER_LEVEL_FACTOR = 0.25// iOS factor : to match iOS power level
   }
 
-  override val permissionsToRequest = mapOf(
-    VERSION_CODES.BASE to listOf(RECORD_AUDIO),
-    VERSION_CODES.M to listOf(WRITE_EXTERNAL_STORAGE)
+  override val permissionsToRequest = listOf(
+    PermissionToRequest(RECORD_AUDIO),
+    PermissionToRequest(WRITE_EXTERNAL_STORAGE, maxSdk = VERSION_CODES.LOLLIPOP_MR1)//WR_EX_ST was removed in M, so last allowed version is LP_MR1
   )
 
   private var sampleRate = 16000L//Khz
@@ -128,7 +128,6 @@ class FlutterAudioRecorder4Plugin(registrar: Registrar? = null) : PermissionRequ
     result.success(currentResult)
   }
 
-  @SuppressLint("MissingPermission")//No need to include in Manifest because programmatically requested
   private fun handleStart(call: MethodCall, result: Result) {
     recorder = AudioRecord(MIC, sampleRate.toInt(), CHANNEL_IN_MONO, ENCODING_PCM_16BIT, bufferSize)
 

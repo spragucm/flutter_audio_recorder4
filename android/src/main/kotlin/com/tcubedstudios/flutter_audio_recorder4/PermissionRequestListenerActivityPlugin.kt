@@ -1,8 +1,5 @@
 package com.tcubedstudios.flutter_audio_recorder4
 
-import android.Manifest.permission.RECORD_AUDIO
-import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-import android.app.Activity
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.os.Build
 import androidx.core.app.ActivityCompat
@@ -25,10 +22,15 @@ abstract class PermissionRequestListenerActivityPlugin(
 
     //Android version:permission
     //The version indicates the android version to start requesting the given permission
-    abstract val permissionsToRequest: Map<Int, List<String>>
+    abstract val permissionsToRequest: List<PermissionToRequest>
 
     val uniquePermissionsToRequest: Set<String>
-        get() = permissionsToRequest.filter { it.key <=  Build.VERSION.SDK_INT }.flatMap { it.value }.toSet()
+        get() = permissionsToRequest.filter { permission ->
+            val minSdk = permission.minSdk ?: 0
+            val maxSdk = permission.maxSdk ?: Int.MAX_VALUE
+            val sdk = Build.VERSION.SDK_INT
+            sdk in minSdk..maxSdk
+        }.map { it.permission }.toSet()
 
     //region region Add/Remove listener based on lifecycle (Android plugin v1)
     init {
@@ -77,23 +79,16 @@ abstract class PermissionRequestListenerActivityPlugin(
 
     private fun areAllPermissionsGranted() : Boolean {
         activity?.let { activity ->
-
-            listOf(RECORD_AUDIO, WRITE_EXTERNAL_STORAGE).forEach { permission ->
-                if(ContextCompat.checkSelfPermission(activity, permission) != PERMISSION_GRANTED)
-                    return false
-            }
-            return true
-            /*return uniquePermissionsToRequest.all { permission ->
+            return uniquePermissionsToRequest.all { permission ->
                 ContextCompat.checkSelfPermission(activity, permission) == PERMISSION_GRANTED
-            }*/
+            }
         }
         return false
     }
 
     private fun requestPermissions() {
         activity?.let { activity ->
-            ActivityCompat.requestPermissions(activity, listOf(RECORD_AUDIO, WRITE_EXTERNAL_STORAGE).toTypedArray(), permissionsRequestCode)
-            //ActivityCompat.requestPermissions(activity, uniquePermissionsToRequest.toTypedArray(), permissionsRequestCode)
+            ActivityCompat.requestPermissions(activity, uniquePermissionsToRequest.toTypedArray(), permissionsRequestCode)
         }
     }
 
