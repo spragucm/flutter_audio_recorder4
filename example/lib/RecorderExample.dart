@@ -192,7 +192,6 @@ class RecorderExampleState extends State<RecorderExample> {
             buildHasPermissionsRow(),
             buildVersionsRow(),
             buildRecorderRow(),
-            buildVerticalSpacer(),
             buildRecorderStateRow(),
             buildAveragePowerRow(),
             buildPeakPowerRow(),
@@ -239,7 +238,12 @@ class RecorderExampleState extends State<RecorderExample> {
   );
 
   Widget buildGetPermissionsButton() => TextButton(
-    onPressed: (){ FlutterAudioRecorder4.hasPermissions; },
+    onPressed: () async {
+      bool? hasPermissions = await FlutterAudioRecorder4.hasPermissions ?? this.hasPermissions;
+      setState(() {
+        this.hasPermissions = hasPermissions;
+      });
+    },
     style: buildButtonStyle(),
     child: Text("Request Permissions", style: buildButtonTextStyle())
   );
