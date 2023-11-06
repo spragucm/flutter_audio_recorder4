@@ -8,20 +8,21 @@ import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry
 
-abstract class FlutterPluginImpl(val registrar: PluginRegistry.Registrar? = null) : FlutterPlugin, MethodCallHandler {
+abstract class FlutterPluginImpl(
+    val registrar: PluginRegistry.Registrar? = null,
+    protected var methodChannel: MethodChannel? = null
+) : FlutterPlugin, MethodCallHandler {
+
+    /// The MethodChannel will communication between Flutter and native Android
+    /// This local reference serves to register the plugin with the Flutter Engine and unregister it
+    /// when the Flutter Engine is detached from the Activity
 
     companion object {
-        /// The MethodChannel that will the communication between Flutter and native Android
-        /// This local reference serves to register the plugin with the Flutter Engine and unregister it
-        /// when the Flutter Engine is detached from the Activity
-        @JvmStatic
-        private lateinit var methodChannel : MethodChannel
-
         // Android plugin v1 binding
         @JvmStatic
         fun registerWith(registrar: PluginRegistry.Registrar) {
-            methodChannel = MethodChannel(registrar.messenger(), "flutter_audio_recorder4")
-            val plugin = FlutterAudioRecorder4Plugin(registrar)
+            val methodChannel = MethodChannel(registrar.messenger(), "flutter_audio_recorder4")
+            val plugin = FlutterAudioRecorder4Plugin(registrar, methodChannel)
             methodChannel.setMethodCallHandler(plugin)
         }
     }
@@ -31,12 +32,13 @@ abstract class FlutterPluginImpl(val registrar: PluginRegistry.Registrar? = null
     //region Flutter plugin binding
     // Android plugin v2 binding
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
-        methodChannel = MethodChannel(flutterPluginBinding.binaryMessenger, "flutter_audio_recorder4")
-        methodChannel.setMethodCallHandler(this)
+        methodChannel = MethodChannel(flutterPluginBinding.binaryMessenger, "flutter_audio_recorder4").apply {
+            setMethodCallHandler(this@FlutterPluginImpl)
+        }
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
-        methodChannel.setMethodCallHandler(null)
+        methodChannel?.setMethodCallHandler(null)
     }
     //endregion
 

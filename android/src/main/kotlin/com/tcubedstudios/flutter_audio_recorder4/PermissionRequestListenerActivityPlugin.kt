@@ -11,14 +11,18 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.PluginRegistry
 import io.flutter.plugin.common.PluginRegistry.Registrar
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 
 //Registrar is passed for Android plugin v1 compatibility
 abstract class PermissionRequestListenerActivityPlugin(
-    registrar: Registrar? = null
-) : ActivityAwarePlugin(registrar), PluginRegistry.RequestPermissionsResultListener {
+    registrar: Registrar? = null,
+    methodChannel: MethodChannel? = null
+) : ActivityAwarePlugin(registrar, methodChannel), PluginRegistry.RequestPermissionsResultListener {
 
     open val permissionsRequestCode = 200
-    var allPermissionsGranted = false
+    var allPermissionsGrantedTemp: Boolean? = null
 
     //Android version:permission
     //The version indicates the android version to start requesting the given permission
@@ -65,6 +69,10 @@ abstract class PermissionRequestListenerActivityPlugin(
         super.onMethodCall(call, result)
         if (call.method.toMethodCall() == HAS_PERMISSIONS) handleHasPermissions()
     }
+
+    fun callFlutterHasPermissions() {
+        //methodChannel?.invokeMethod("", "")
+    }
     //endregion
 
     //region Permission handling
@@ -74,6 +82,16 @@ abstract class PermissionRequestListenerActivityPlugin(
         } else {
             requestPermissions()
             result?.success(false)
+
+            //TODO - CHRIS - how to wait for the user input and return?
+            //The following will cause Flutter to hang until the onRequestPermissionsResult sets allPermissionsGrantedTemp
+            /*runBlocking {
+                while(allPermissionsGrantedTemp == null) {
+                    delay(100)
+                }
+                result?.success(allPermissionsGrantedTemp)
+                allPermissionsGrantedTemp = null
+            }*/
         }
     }
 
@@ -93,16 +111,14 @@ abstract class PermissionRequestListenerActivityPlugin(
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray): Boolean {
+        var isHandled = false
         if (requestCode == permissionsRequestCode) {
-            allPermissionsGranted = grantResults.isNotEmpty() && grantResults.all { it == PERMISSION_GRANTED }
-            if (allPermissionsGranted) handleAllPermissionsGranted()
-            return true
-        }
-        return false
-    }
+            //Setting allPermissionsGrantedTemp to a non null will allow a result to be returned to flutter
+            allPermissionsGrantedTemp = grantResults.isNotEmpty() && grantResults.all { it == PERMISSION_GRANTED }
 
-    private fun handleAllPermissionsGranted() {
-        //Nothing to do now. Maybe in the future.
+            isHandled = true
+        }
+        return isHandled
     }
     //endregion
 }

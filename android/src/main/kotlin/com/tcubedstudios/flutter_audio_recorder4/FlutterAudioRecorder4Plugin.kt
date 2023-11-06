@@ -23,6 +23,7 @@ import com.tcubedstudios.flutter_audio_recorder4.MethodCalls.*
 import com.tcubedstudios.flutter_audio_recorder4.MethodCalls.Companion.toMethodCall
 import com.tcubedstudios.flutter_audio_recorder4.RecorderState.*
 import io.flutter.plugin.common.MethodCall
+import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry.Registrar
 import java.io.File
@@ -34,7 +35,10 @@ import kotlin.math.abs
 import kotlin.math.ln
 
 //Registrar is passed for Android plugin v1 compatibility
-class FlutterAudioRecorder4Plugin(registrar: Registrar? = null) : PermissionRequestListenerActivityPlugin(registrar) {
+class FlutterAudioRecorder4Plugin(
+    registrar: Registrar? = null,
+    methodChannel: MethodChannel? = null
+) : PermissionRequestListenerActivityPlugin(registrar, methodChannel) {
 
   //TODO - CHRIS
   // If recorder is ever expected to operate in a background service, implement ServiceAware interface.
