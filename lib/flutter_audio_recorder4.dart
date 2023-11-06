@@ -32,6 +32,10 @@ class FlutterAudioRecorder4 {
     return await METHOD_CHANNEL.invokeMethod(NativeMethodCall.HAS_PERMISSIONS.methodName);
   }
 
+  static Future get revokePermissions async {
+    return await METHOD_CHANNEL.invokeMethod(NativeMethodCall.REVOKE_PERMISSIONS.methodName);
+  }
+
   String? filepath;
   String? extension;
   Recording? recording;

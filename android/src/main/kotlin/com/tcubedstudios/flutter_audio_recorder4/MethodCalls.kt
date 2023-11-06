@@ -3,6 +3,7 @@ package com.tcubedstudios.flutter_audio_recorder4
 enum class MethodCalls(var methodName: String) {
 
     HAS_PERMISSIONS("hasPermissions"),
+    REVOKE_PERMISSIONS("revokePermissions"),
     INIT("init"),
     CURRENT("current"),
     START("start"),

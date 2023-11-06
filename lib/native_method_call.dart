@@ -1,6 +1,7 @@
 enum NativeMethodCall {
 
   HAS_PERMISSIONS(methodName: "hasPermissions"),
+  REVOKE_PERMISSIONS(methodName: "revokePermissions"),
   INIT(methodName: "init"),
   CURRENT(methodName: "current"),
   START(methodName: "start"),

@@ -6,6 +6,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.tcubedstudios.flutter_audio_recorder4.MethodCalls.Companion.toMethodCall
 import com.tcubedstudios.flutter_audio_recorder4.MethodCalls.HAS_PERMISSIONS
+import com.tcubedstudios.flutter_audio_recorder4.MethodCalls.REVOKE_PERMISSIONS
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -67,7 +68,11 @@ abstract class PermissionRequestListenerActivityPlugin(
     //region Flutter exchange handling
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         super.onMethodCall(call, result)
-        if (call.method.toMethodCall() == HAS_PERMISSIONS) handleHasPermissions()
+        when(call.method.toMethodCall()) {
+            HAS_PERMISSIONS -> handleHasPermissions()
+            REVOKE_PERMISSIONS -> revokePermissions()
+            else -> {}
+        }
     }
 
     fun callFlutterHasPermissions() {
@@ -82,17 +87,17 @@ abstract class PermissionRequestListenerActivityPlugin(
         } else {
             requestPermissions()
             result?.success(false)
-
-            //TODO - CHRIS - how to wait for the user input and return?
-            //The following will cause Flutter to hang until the onRequestPermissionsResult sets allPermissionsGrantedTemp
-            /*runBlocking {
-                while(allPermissionsGrantedTemp == null) {
-                    delay(100)
-                }
-                result?.success(allPermissionsGrantedTemp)
-                allPermissionsGrantedTemp = null
-            }*/
         }
+    }
+
+    private fun revokePermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            uniquePermissionsToRequest.forEach { permission ->
+                activity?.revokeSelfPermissionOnKill(permission)
+            }
+            result?.success(true)
+        }
+        result?.success(false)
     }
 
     private fun areAllPermissionsGranted() : Boolean {
