@@ -11,32 +11,32 @@ import io.flutter.plugin.common.PluginRegistry
 abstract class FlutterPluginImpl(val registrar: PluginRegistry.Registrar? = null) : FlutterPlugin, MethodCallHandler {
 
     companion object {
+        /// The MethodChannel that will the communication between Flutter and native Android
+        /// This local reference serves to register the plugin with the Flutter Engine and unregister it
+        /// when the Flutter Engine is detached from the Activity
+        @JvmStatic
+        private lateinit var methodChannel : MethodChannel
+
         // Android plugin v1 binding
         @JvmStatic
         fun registerWith(registrar: PluginRegistry.Registrar) {
-            val channel = MethodChannel(registrar.messenger(), "flutter_audio_recorder4")
+            methodChannel = MethodChannel(registrar.messenger(), "flutter_audio_recorder4")
             val plugin = FlutterAudioRecorder4Plugin(registrar)
-            channel.setMethodCallHandler(plugin)
+            methodChannel.setMethodCallHandler(plugin)
         }
     }
 
     protected var result: Result? = null
 
-    /// The MethodChannel that will the communication between Flutter and native Android
-    ///
-    /// This local reference serves to register the plugin with the Flutter Engine and unregister it
-    /// when the Flutter Engine is detached from the Activity
-    private lateinit var channel : MethodChannel
-
     //region Flutter plugin binding
     // Android plugin v2 binding
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
-        channel = MethodChannel(flutterPluginBinding.binaryMessenger, "flutter_audio_recorder4")
-        channel.setMethodCallHandler(this)
+        methodChannel = MethodChannel(flutterPluginBinding.binaryMessenger, "flutter_audio_recorder4")
+        methodChannel.setMethodCallHandler(this)
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
-        channel.setMethodCallHandler(null)
+        methodChannel.setMethodCallHandler(null)
     }
     //endregion
 
