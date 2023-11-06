@@ -11,6 +11,7 @@ import 'package:flutter_audio_recorder4/flutter_audio_recorder4.dart';
 import 'package:flutter_audio_recorder4/recorder_state.dart';
 import 'package:flutter_audio_recorder4/recording.dart';
 import 'package:flutter_audio_recorder4_example/utils.dart';
+import 'package:restart_app/restart_app.dart';
 import 'dart:developer' as developer;
 
 import 'package:path_provider/path_provider.dart';
@@ -33,6 +34,7 @@ class RecorderExampleState extends State<RecorderExample> {
   String platformVersion = "";
   String libraryVersion = "TODO";
   bool hasPermissions = false;
+  bool isRevoked = false;
 
   @override
   void initState() {
@@ -216,14 +218,8 @@ class RecorderExampleState extends State<RecorderExample> {
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
       Text("Has permissions:$hasPermissions"),
-      buildVerticalSpacer(),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          buildGetPermissionsButton(),
-          buildRevokePermissionsButton()
-        ]
-      ),
+      buildGetPermissionsButton(),
+      buildRevokePermissionsButton()
     ],
   );
 
@@ -263,10 +259,14 @@ class RecorderExampleState extends State<RecorderExample> {
 
   Widget buildRevokePermissionsButton() => TextButton(
       onPressed: () async {
-        await FlutterAudioRecorder4.revokePermissions;
+        isRevoked = await FlutterAudioRecorder4.revokePermissions ?? false;
+        setState((){
+          hasPermissions = !isRevoked;
+        });
+        await Restart.restartApp();//Must restart for revoked permissions to take affect
       },
       style: buildButtonStyle(),
-      child: Text("Revoke Permissions", style: buildButtonTextStyle())
+      child: Text(isRevoked ? "Revoked Permissions. Must restart app." : "Revoke Permissions", style: buildButtonTextStyle())
   );
 
   Widget buildPlayButton() => TextButton(
