@@ -140,7 +140,7 @@ class FlutterAudioRecorder4 {
     var result = await METHOD_CHANNEL.invokeMethod(
         NativeMethodCall.CURRENT.methodName,
         {
-          NamedArguments.CHANNEL:channel                          //TODO - CHRIS - why pass channel why Android not using it?
+          NamedArguments.CHANNEL:channel                          //TODO - CHRIS - why pass channel when Android not using it?
         }
     );
 
@@ -189,6 +189,8 @@ class FlutterAudioRecorder4 {
 
     return recording;
   }
+
+  bool isRecording() => recording?.isRecording() ?? false;
 
   //TODO - CHRIS - what is this?
   Future<String?> getPlatformVersion() {

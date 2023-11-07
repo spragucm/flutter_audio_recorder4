@@ -231,7 +231,9 @@ class RecorderExampleState extends State<RecorderExample> {
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: <Widget>[
         buildNextRecorderStateButton(),
-        buildStopButton(),
+        if (recorder?.isRecording() ?? false)...[
+          buildStopButton()
+        ],
         buildPlayButton()
       ]
     );

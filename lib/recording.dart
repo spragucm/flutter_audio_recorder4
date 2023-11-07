@@ -23,6 +23,8 @@ class Recording {
   AudioFormat? audioFormat;
   RecorderState? recorderState;
   AudioMetering? audioMetering;
+
+  bool isRecording() => recorderState == RecorderState.PAUSED || recorderState == RecorderState.RECORDING;
 }
 
 extension RecordingExtensionUtils on Map<dynamic, dynamic>? {
