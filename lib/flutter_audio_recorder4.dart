@@ -144,7 +144,7 @@ class FlutterAudioRecorder4 {
         }
     );
 
-    if (result != null && recording?.recorderState != RecorderState.STOPPED) {
+    if (result != null && recording?.recorderState != RecorderState.STOPPED) {//TODO - CHRIS - why only when stopped?
       Map<String, Object> response = Map.from(result);
       var recordingFromResponse = response.toRecording();
       if (recordingFromResponse != null) {

@@ -83,11 +83,12 @@ class RecorderExampleState extends State<RecorderExample> {
     // .wav <---> AudioFormat.WAV
     // .mp4 .m4a .aac <---> AudioFormat.AAC
     // AudioFormat is optional, if given value, will overwrite path extension when there is conflicts.
-    var recorder = FlutterAudioRecorder4(customPath, audioFormat: AudioFormat.AAC);
+    var recorder = FlutterAudioRecorder4(customPath, audioFormat: AudioFormat.AAC);//TODO - CHRIS - any reason this can't be around without permissions?
 
+    var recording = this.recording;
     try {
       await recorder.initialized;
-      var recording = await recorder.current(channel: 0);
+      recording = await recorder.current(channel: FlutterAudioRecorder4.DEFAULT_CHANNEL);
       developer.log("Recording:$recording");
     } catch(exception) {
       developer.log("Initialized exception:$exception");
