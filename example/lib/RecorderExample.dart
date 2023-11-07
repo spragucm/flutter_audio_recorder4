@@ -83,7 +83,7 @@ class RecorderExampleState extends State<RecorderExample> {
     // .wav <---> AudioFormat.WAV
     // .mp4 .m4a .aac <---> AudioFormat.AAC
     // AudioFormat is optional, if given value, will overwrite path extension when there is conflicts.
-    var recorder = FlutterAudioRecorder4(customPath, audioFormat: AudioFormat.AAC);//TODO - CHRIS - any reason this can't be around without permissions?
+    var recorder = FlutterAudioRecorder4(customPath, audioFormat: AudioFormat.AAC, localFileSystem: widget.localFileSystem);//TODO - CHRIS - any reason this can't be around without permissions?
 
     var recording = this.recording;
     try {
@@ -155,9 +155,9 @@ class RecorderExampleState extends State<RecorderExample> {
     if (filepath == null) {
       developer.log("Stop recording and filepath is null");
     } else {
-      File file = widget.localFileSystem.file(filepath);
-      var fileLength = await file.length();
-      developer.log("Stop recording and file length is $fileLength");
+      File? file = result?.playableFile;
+      var fileSizeInBytes = await result?.fileSizeInBytes();
+      developer.log("Stop recording and file length is $fileSizeInBytes");
     }
 
     setState((){
@@ -234,7 +234,10 @@ class RecorderExampleState extends State<RecorderExample> {
         if (recorder?.isRecording() ?? false)...[
           buildStopButton()
         ],
-        buildPlayButton()
+        //TODO - CHRIS - only show play button when playable file exists
+        //if (recording?.playableFile != null) ... [
+          buildPlayButton()
+        //]
       ]
     );
   }

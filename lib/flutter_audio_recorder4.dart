@@ -44,6 +44,7 @@ class FlutterAudioRecorder4 {
   String? extension;
   Recording? recording;
   int? sampleRate;
+  late LocalFileSystem _localFileSystem;
 
   late Future initRecorder;
   Future get initialized => initRecorder;//TODO - CHRIS - still useful?
@@ -53,9 +54,11 @@ class FlutterAudioRecorder4 {
       String? filepath,
       {
         AudioFormat? audioFormat,
-        int sampleRate = DEFAULT_SAMPLE_RATE
+        int sampleRate = DEFAULT_SAMPLE_RATE,
+        LocalFileSystem? localFileSystem
       }
   ) {
+    _localFileSystem = localFileSystem ?? const LocalFileSystem();
     initRecorder = init(filepath, audioFormat, sampleRate);
     METHOD_CHANNEL.setMethodCallHandler(this.methodHandler);
   }
@@ -125,7 +128,7 @@ class FlutterAudioRecorder4 {
           }
       );
 
-      recording = result != false ? Map.from(result).toRecording() : Recording.createDefaultRecording();
+      recording = result != false ? Map.from(result).toRecording(localFileSystem: _localFileSystem) : Recording.createDefaultRecording();
 
       return true;
     } catch(exception) {
@@ -146,7 +149,7 @@ class FlutterAudioRecorder4 {
 
     if (result != null && recording?.recorderState != RecorderState.STOPPED) {//TODO - CHRIS - why only when stopped?
       Map<String, Object> response = Map.from(result);
-      var recordingFromResponse = response.toRecording();
+      var recordingFromResponse = response.toRecording(localFileSystem: _localFileSystem);
       if (recordingFromResponse != null) {
         recording = recordingFromResponse;
       }
@@ -181,7 +184,7 @@ class FlutterAudioRecorder4 {
 
     if (result != null) {
       Map<String, Object> response = Map.from(result);
-      var recordingFromResponse = response.toRecording();
+      var recordingFromResponse = response.toRecording(localFileSystem: _localFileSystem);
       if (recordingFromResponse != null) {
         recording = recordingFromResponse;
       }
@@ -191,6 +194,8 @@ class FlutterAudioRecorder4 {
   }
 
   bool isRecording() => recording?.isRecording() ?? false;
+  bool isRecordingStopped() => recording?.isRecordingStopped() ?? true;
+  bool hasPlayableAudio() => recording?.hasPlayableAudio() ?? false;
 
   //TODO - CHRIS - what is this?
   Future<String?> getPlatformVersion() {
