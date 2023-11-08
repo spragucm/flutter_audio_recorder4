@@ -1,75 +1,69 @@
+import 'package:file/file.dart';
 import 'package:file/local.dart';
-import 'package:file/src/interface/file.dart';
 import 'package:flutter_audio_recorder4/audio_extension.dart';
 import 'package:flutter_audio_recorder4/named_arguments.dart';
-
 import 'recorder_state.dart';
 import 'audio_format.dart';
 import 'audio_metering.dart';
 
 class Recording {
 
-  static createDefaultRecording() {
-    Recording getDefaultRecording() => Recording()
-      ..recorderState = RecorderState.UNSET
-      ..audioMetering = AudioMetering(
-          averagePower: AudioMetering.DEFAULTS_AVERAGE_POWER,
-          peakPower: AudioMetering.DEFAULTS_PEAK_POWER,
-          meteringEnabled: AudioMetering.DEFAULTS_METERING_ENABLED
-      );
-  }
+  static String DEFAULT_EXTENSION = AudioExtension.M4A.extension;
+  static Duration DEFAULT_DURATION = const Duration();
+  static AudioFormat DEFAULT_AUDIO_FORMAT = DEFAULT_EXTENSION.toAudioFormat()!;
+  static const RecorderState DEFAULT_RECORDER_STATE = RecorderState.UNSET;
+  static const int DEFAULT_SAMPLE_RATE_KHZ = 16000;
 
   String? filepath;
-  String? extension;
-  Duration? duration;
-  AudioFormat? audioFormat;
-  RecorderState? recorderState;
-  AudioMetering? audioMetering;
-  late LocalFileSystem _localFileSystem;
+  String extension = DEFAULT_EXTENSION;
+  Duration duration = DEFAULT_DURATION;
+  AudioFormat audioFormat = DEFAULT_AUDIO_FORMAT;
+  RecorderState recorderState = DEFAULT_RECORDER_STATE;
+  int sampleRate = DEFAULT_SAMPLE_RATE_KHZ;
 
-  File? get file {
-    // There could technically be an empty file that a caller would like to delete,
-    // so, don't account for playable audio
-    if (isRecordingStopped()) {
-      return filepath == null ? null : _localFileSystem.file(filepath);
-    } else {
-      return null;
-    }
-  }
-
-  File? get playableFile {
-    if (hasPlayableAudio()) {
-      return file;
-    } else {
-      return null;
-    }
-  }
-
-  Recording({ LocalFileSystem? localFileSystem}) {
-    _localFileSystem = localFileSystem ?? const LocalFileSystem();
-  }
+  AudioMetering audioMetering = AudioMetering(
+      averagePower: AudioMetering.DEFAULT_AVERAGE_POWER,
+      peakPower: AudioMetering.DEFAULT_PEAK_POWER,
+      meteringEnabled: AudioMetering.DEFAULT_METERING_ENABLED
+  );
 
   bool isRecording() => recorderState == RecorderState.PAUSED || recorderState == RecorderState.RECORDING;
-  bool isRecordingStopped() => recorderState == RecorderState.STOPPED;
-  bool hasPlayableAudio() => isRecordingStopped() && (duration?.inMilliseconds ?? 0) > 0;
-  Future<int> fileSizeInBytes() async => await file?.length() ?? -1;
+  bool isStopped() => recorderState == RecorderState.STOPPED;
+  bool isPlayable() => isStopped() && duration.inMilliseconds > 0;
 }
 
 extension RecordingExtensionUtils on Map<dynamic, dynamic>? {
-  Recording? toRecording({LocalFileSystem? localFileSystem}) {
+  Recording? toRecording() {
     var map = this;
     if (map == null) return null;
 
-    return Recording(localFileSystem: localFileSystem)
+    return Recording()
       ..filepath = map[NamedArguments.FILEPATH] as String?
-      ..extension = (map[NamedArguments.EXTENSION] as String?)
-      ..duration = Duration(milliseconds: map[NamedArguments.DURATION] as int)
-      ..audioFormat = (map[NamedArguments.AUDIO_FORMAT] as String?)?.toAudioFormat()
-      ..recorderState =(map[NamedArguments.RECORDER_STATE] as String?).toRecorderState()
+      ..extension = map[NamedArguments.EXTENSION] as String? ?? Recording.DEFAULT_EXTENSION
+      ..duration = Duration(milliseconds: (map[NamedArguments.DURATION] as int?) ?? 0)
+      ..audioFormat = (map[NamedArguments.AUDIO_FORMAT] as String?)?.toAudioFormat() ?? AudioFormat.AAC
+      ..recorderState =(map[NamedArguments.RECORDER_STATE] as String?).toRecorderState() ?? RecorderState.UNSET
       ..audioMetering = AudioMetering(
-          peakPower: map[NamedArguments.PEAK_POWER] as double?,
-          averagePower: map[NamedArguments.AVERAGE_POWER] as double?,
-          meteringEnabled: map[NamedArguments.METERING_ENABLED] as bool?
-      );
+          peakPower: map[NamedArguments.PEAK_POWER] as double? ?? AudioMetering.DEFAULT_PEAK_POWER,
+          averagePower: map[NamedArguments.AVERAGE_POWER] as double? ?? AudioMetering.DEFAULT_AVERAGE_POWER,
+          meteringEnabled: map[NamedArguments.METERING_ENABLED] as bool? ?? AudioMetering.DEFAULT_METERING_ENABLED
+      )
+      ..sampleRate = map[NamedArguments.SAMPLE_RATE] as int? ?? Recording.DEFAULT_SAMPLE_RATE_KHZ;
   }
+}
+
+extension FileUtils on LocalFileSystem {
+  File? toFile(Recording recording, { bool onlyIfPlayable = false }) {
+    // There could technically be an empty file that a caller would like to delete,
+    // so, don't account for playable audio
+    var filepath = recording.filepath;
+    var isPlayable = onlyIfPlayable ? recording.isPlayable() : true;
+    if (recording.isStopped() && filepath != null && isPlayable) {
+      return file(filepath);
+    } else {
+      return null;
+    }
+  }
+
+  Future<int> fileSizeInBytes(Recording recording) async => await toFile(recording)?.length() ?? -1;
 }

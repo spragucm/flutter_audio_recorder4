@@ -23,18 +23,33 @@ class RecorderExample extends StatefulWidget {
   const RecorderExample({super.key, localFileSystem}) : this.localFileSystem = localFileSystem ?? const LocalFileSystem();
 
   @override
-  State<StatefulWidget> createState() => RecorderExampleState();
+  State<StatefulWidget> createState() => RecorderExampleState(localFileSystem);
 }
 
+//TODO - CHRIS - to make it easier to use this library, make a super State class that users can inherit so that they can inherit the boiler plate
 class RecorderExampleState extends State<RecorderExample> {
 
-  FlutterAudioRecorder4? recorder;
-  Recording? recording;
-  RecorderState recorderState = RecorderState.UNSET;
+  late FlutterAudioRecorder4 recorder;
+  //Recording get recording => recorder.recording;
+
+  // Only holding the individual recording values in order to trigger UI updates when the values change
+  // All recording management is done by the recorder
+  // String? filepath;
+  // String? extenion;
+  // Duration? duration;
+  // AudioFormat? audioFormat;
+  // RecorderState? recorderState;
+  // int? sampleRate;
+
   String platformVersion = "";
   String libraryVersion = "TODO";
+
   bool hasPermissions = false;
   bool isRevoked = false;
+
+  RecorderExampleState(LocalFileSystem? localFileSystem) {
+    recorder = FlutterAudioRecorder4(null, audioFormat: AudioFormat.AAC, localFileSystem: localFileSystem);
+  }
 
   @override
   void initState() {
@@ -55,12 +70,16 @@ class RecorderExampleState extends State<RecorderExample> {
   }
 
   Future<void> updatePlatformVersion() async {
-    var platformVersion = await recorder?.getPlatformVersion() ?? "Unknown platform version";
+    var platformVersion = await recorder.getPlatformVersion();
     setState((){
       this.platformVersion = platformVersion;
     });
   }
 
+  //TODO - CHRIS - the caller should be able to be notified when the recorder has permissions changes,
+  //however, the caller should not be responsible for handling what to do with the recorder based on permissions.
+  //That should all be internal to the recorder.
+  //There also needs to be an option in the recorder to auto-request permissions or trigger request from caller
   Future<void> hasPermissionsCallback(hasPermissions) async {
     if (hasPermissions) {
       await handleHasPermissions();
@@ -69,6 +88,8 @@ class RecorderExampleState extends State<RecorderExample> {
     }
   }
 
+  //TODO - CHRIS - there is no reason to wait to init the recorder until permissions are accepted
+  //Instead, when the user goes to record, show the snackbar notification
   Future<void> handleHasPermissions() async {
     String customPath = '/flutter_audio_recorder_';
 
@@ -80,27 +101,17 @@ class RecorderExampleState extends State<RecorderExample> {
                  customPath +
                  DateTime.now().millisecondsSinceEpoch.toString();
 
-    // .wav <---> AudioFormat.WAV
-    // .mp4 .m4a .aac <---> AudioFormat.AAC
-    // AudioFormat is optional, if given value, will overwrite path extension when there is conflicts.
-    var recorder = FlutterAudioRecorder4(customPath, audioFormat: AudioFormat.AAC, localFileSystem: widget.localFileSystem);//TODO - CHRIS - any reason this can't be around without permissions?
-
-    var recording = this.recording;
     try {
       await recorder.initialized;
-      recording = await recorder.current(channel: FlutterAudioRecorder4.DEFAULT_CHANNEL);
-      developer.log("Recording:$recording");
+      await updateRecording();
     } catch(exception) {
       developer.log("Initialized exception:$exception");
     }
 
     // Recorder should now be INITIALIZED if everything is working
     setState(() {
-      this.recorder = recorder;
-      this.recording = recording;
-      recorderState = recording?.recorderState ?? RecorderState.UNSET;
       hasPermissions = true;
-      developer.log("RecorderState:$recorderState");
+      developer.log("RecorderState:${recorder.recording.recorderState}");
     });
   }
 
@@ -115,18 +126,18 @@ class RecorderExampleState extends State<RecorderExample> {
 
   void start() async {
     try {
-      await recorder?.start();
+      await recorder.start();
 
-      await updateRecording();
+      //TODO - CHRIS - handle start errors
 
+      //TODO - CHRIS - this ticker should be in recorder and caller should be able to set a callback if they're interested
       const tick = Duration(milliseconds: 50);
       Timer.periodic(tick, (Timer timer) async {
-        if (recorderState == RecorderState.STOPPED) {
+        if (recorder.isStopped) {
           timer.cancel();
         }
 
         await updateRecording();
-        updateRecorderState();
       });
 
     } catch(exception) {
@@ -135,19 +146,20 @@ class RecorderExampleState extends State<RecorderExample> {
   }
 
   void resume() async {
-    await recorder?.resume();
+    await recorder.resume();
     triggerStateRefresh();
   }
 
   void pause() async {
-    await recorder?.pause();
+    await recorder.pause();
     triggerStateRefresh();
   }
 
   void stop() async {
-    var result = await recorder?.stop();
-    var filepath = result?.filepath;
-    var duration = result?.duration;
+    var recording = await recorder.stop();
+
+    var filepath = recording.filepath;
+    var duration = recording.duration;
 
     developer.log("Stop recording: path:$filepath");
     developer.log("Stop recording: duration:$duration");
@@ -155,38 +167,29 @@ class RecorderExampleState extends State<RecorderExample> {
     if (filepath == null) {
       developer.log("Stop recording and filepath is null");
     } else {
-      File? file = result?.playableFile;
-      var fileSizeInBytes = await result?.fileSizeInBytes();
+      File? playableRecordingFile = recorder.playableRecordingFile;
+      var fileSizeInBytes = await recorder.recordingFileSizeInBytes;
       developer.log("Stop recording and file length is $fileSizeInBytes");
     }
-
-    setState((){
-      recording = result;
-      recorderState = result?.recorderState ?? RecorderState.UNSET;//TODO - CHRIS - it's probably worth having an error state vs unset
-    });
+    triggerStateRefresh();
   }
 
+  //TODO - CHRIS - caller should not need to do this; it should be internal to the recorder and then a callback can be triggered for when the recording is updated
   Future updateRecording() async {
-    var recording = await recorder?.current(channel: 0);
-    setState((){
-      this.recording = recording;
-    });
+    await recorder.current(channel: FlutterAudioRecorder4.DEFAULT_CHANNEL);
+    triggerStateRefresh();
   }
 
-  void updateRecorderState() {
-    setState((){
-      recorderState = recording?.recorderState ?? RecorderState.UNSET;
-    });
-  }
-
+  //TODO - CHRIS - might need to change fields for real
   void triggerStateRefresh() => setState((){});
 
+  //TODO - CHRIS - I'd prefer that the recorder also have the audio playback, but that might not be desirable for everybody
   void onPlayAudio() async {
-    var filepath = recording?.filepath;
-    if (filepath == null) {
+    var playableRecordingFile = recorder.playableRecordingFile;
+    if (playableRecordingFile == null) {//TODO - CHRIS - snackbar the user
       developer.log("OnPlayAudio filepath is null");
     } else {
-      await AudioPlayer().play(DeviceFileSource(filepath));
+      await AudioPlayer().play(DeviceFileSource(playableRecordingFile.path));
     }
   }
 
@@ -231,13 +234,12 @@ class RecorderExampleState extends State<RecorderExample> {
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: <Widget>[
         buildNextRecorderStateButton(),
-        if (recorder?.isRecording() ?? false)...[
+        if (recorder.isRecording)...[
           buildStopButton()
         ],
-        //TODO - CHRIS - only show play button when playable file exists
-        //if (recording?.playableFile != null) ... [
+        if (recorder.playableRecordingFile != null) ... [
           buildPlayButton()
-        //]
+        ]
       ]
     );
   }
@@ -247,7 +249,7 @@ class RecorderExampleState extends State<RecorderExample> {
   Widget buildVerticalSpacer() => const SizedBox(width: 8);
 
   Widget buildStopButton() => TextButton(
-      onPressed: recorderState != RecorderState.UNSET ? stop : null,
+      onPressed: stop,
       style: buildButtonStyle(),
       child: Text("Stop", style: buildButtonTextStyle())
   );
@@ -286,7 +288,7 @@ class RecorderExampleState extends State<RecorderExample> {
       padding: buildEdgeInsets(),
       child: TextButton(
         onPressed: (){
-          switch(recorderState) {
+          switch(recorder.recording.recorderState) {//TODO - CHRIS - it's probably best to have each button and logic for when to show the button instead of a button like this
             case RecorderState.INITIALIZED: start();
             case RecorderState.RECORDING: pause();
             case RecorderState.PAUSED: resume();
@@ -295,7 +297,7 @@ class RecorderExampleState extends State<RecorderExample> {
           }
         },
         style: buildButtonStyle(),
-        child: Text(recorderState.nexStateDisplayText, style: buildButtonTextStyle())
+        child: Text(recorder.recording.recorderState.nexStateDisplayText, style: buildButtonTextStyle())
       )
     );
   }
@@ -308,12 +310,12 @@ class RecorderExampleState extends State<RecorderExample> {
 
   TextStyle buildButtonTextStyle() => const TextStyle(color: Colors.white);
 
-  Widget buildFilepathRow() => Text("Filepath:${recording?.filepath}");
-  Widget buildExtensionRow() => Text("Extension:${recording?.extension}");
-  Widget buildDurationRow() => Text("Duration:${recording?.duration}");
-  Widget buildAudioFormatRow() => Text("Audio Format:${recording?.audioFormat}");
-  Widget buildRecorderStateRow() => Text("Recorder State:$recorderState");
-  Widget buildPeakPowerRow() => Text("Peak Power:${recording?.audioMetering?.peakPower}");
-  Widget buildAveragePowerRow() => Text("Average Power:${recording?.audioMetering?.averagePower}");
-  Widget buildMeteringEnabledRow() => Text("Metering Enabled:${recording?.audioMetering?.meteringEnabled}");
+  Widget buildFilepathRow() => Text("Filepath:${recorder.recording.filepath}");
+  Widget buildExtensionRow() => Text("Extension:${recorder.recording.extension}");
+  Widget buildDurationRow() => Text("Duration:${recorder.recording.duration}");
+  Widget buildAudioFormatRow() => Text("Audio Format:${recorder.recording.audioFormat}");
+  Widget buildRecorderStateRow() => Text("Recorder State:${recorder.recording.recorderState}");
+  Widget buildPeakPowerRow() => Text("Peak Power:${recorder.recording.audioMetering.peakPower}");
+  Widget buildAveragePowerRow() => Text("Average Power:${recorder.recording.audioMetering.averagePower}");
+  Widget buildMeteringEnabledRow() => Text("Metering Enabled:${recorder.recording.audioMetering.meteringEnabled}");
 }

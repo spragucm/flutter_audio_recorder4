@@ -1,32 +1,33 @@
 import 'package:flutter_audio_recorder4/recording.dart';
-
 import 'flutter_method_call.dart';
 import 'named_arguments.dart';
-import 'recorder_state.dart';
 import 'audio_extension.dart';
-import 'audio_metering.dart';
 import 'audio_format.dart';
 import 'flutter_audio_recorder4_platform_interface.dart';
 import 'dart:async';
-import 'dart:io';
 import 'package:file/local.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as path_library;
 import 'native_method_call.dart';
+import 'package:file/file.dart';
 import 'dart:developer' as developer;
 
 class FlutterAudioRecorder4 {
 
-  static const int DEFAULT_CHANNEL = 0;
   static const String METHOD_CHANNEL_NAME = "flutter_audio_recorder4";
   static const MethodChannel METHOD_CHANNEL = MethodChannel(METHOD_CHANNEL_NAME);
-  static const AudioFormat DEFAULT_AUDIO_FORMAT = AudioFormat.AAC;
-  static String DEFAULT_EXTENSION = DEFAULT_AUDIO_FORMAT.extension;
-  static const int DEFAULT_SAMPLE_RATE = 16000;//khz
+  static const int DEFAULT_CHANNEL = 0;
+
   static LocalFileSystem LOCAL_FILE_SYSTEM = const LocalFileSystem();
+  static const String LOG_NAME = "com.tcubedstudios.flutter_audio_recorder4";
 
   //TODO - CHRIS - I don't like the static methods
   static Function(bool hasPermissions)? hasPermissionsCallback;
+
+  //TODO - CHRIS - when recorder supports multiple files, select the most recent file
+  bool get isRecording => recording.isRecording();
+  bool get isStopped => recording.isStopped();
+  bool get hasPlayableAudio => recording.isPlayable();
 
   /// Returns the result of record permission
   /// if not determined(app first launch),
@@ -40,38 +41,43 @@ class FlutterAudioRecorder4 {
     return await METHOD_CHANNEL.invokeMethod(NativeMethodCall.REVOKE_PERMISSIONS.methodName);
   }
 
-  String? filepath;
-  String? extension;
-  Recording? recording;
-  int? sampleRate;
   late LocalFileSystem _localFileSystem;
 
-  late Future initRecorder;
-  Future get initialized => initRecorder;//TODO - CHRIS - still useful?
-  //Recording? get recording => recording;//TODO - CHRIS - still useful?
+  //TODO - CHRIS - get most recent recording when recorder supports multiple recordings
+  Recording recording = Recording();
+  File? get recordingFile => _localFileSystem.toFile(recording);
+  File? get playableRecordingFile => _localFileSystem.toFile(recording, onlyIfPlayable: true);
+  Future<int> get recordingFileSizeInBytes => _localFileSystem.fileSizeInBytes(recording);
 
+  late Future initialized;
+
+  // .wav <---> AudioFormat.WAV
+  // .mp4 .m4a .aac <---> AudioFormat.AAC
+  // AudioFormat is optional, if given value, will overwrite path extension when there is conflicts.
   FlutterAudioRecorder4(
       String? filepath,
       {
         AudioFormat? audioFormat,
-        int sampleRate = DEFAULT_SAMPLE_RATE,
+        int sampleRate = Recording.DEFAULT_SAMPLE_RATE_KHZ,
         LocalFileSystem? localFileSystem
       }
   ) {
     _localFileSystem = localFileSystem ?? const LocalFileSystem();
-    initRecorder = init(filepath, audioFormat, sampleRate);
-    METHOD_CHANNEL.setMethodCallHandler(this.methodHandler);
+    initialized = init(filepath, audioFormat, sampleRate);
+    METHOD_CHANNEL.setMethodCallHandler(methodHandler);
   }
 
   Future init(String? filepath, AudioFormat? audioFormat, int sampleRate) async {
 
     Map<String, String?> pathAndExtension = resolvePathAndExtension(filepath, audioFormat);
-    this.filepath = pathAndExtension[NamedArguments.FILEPATH];
-    this.extension = pathAndExtension[NamedArguments.EXTENSION];
-    this.sampleRate = sampleRate;
+    recording.filepath = pathAndExtension[NamedArguments.FILEPATH];
+    recording.extension = pathAndExtension[NamedArguments.EXTENSION] ?? Recording.DEFAULT_EXTENSION;
+    recording.audioFormat = recording.extension.toAudioFormat() ?? Recording.DEFAULT_AUDIO_FORMAT;
+    recording.sampleRate = sampleRate;
 
     validateFilepath(filepath);
 
+    //TODO - CHRIS - should handle when init fails and notify callback
     await invokeNativeInit();
   }
 
@@ -91,7 +97,7 @@ class FlutterAudioRecorder4 {
     - If there is no preferred audio format, use the file's extension and the associated audio format
     - If the file's extension is not a valid audio format, use the default audio format's associated extension
     */
-    var extension = audioFormat?.extension ?? DEFAULT_EXTENSION;
+    var extension = audioFormat?.extension ?? Recording.DEFAULT_EXTENSION;
     if (isPathExtensionValid && useExtensionAudioFormat) {
       extension = pathExtension!;
     }
@@ -105,7 +111,7 @@ class FlutterAudioRecorder4 {
   void validateFilepath(String? filepath) async {
 
     if (filepath == null) {
-      developer.log("Filepath is null", name:"com.tcubedstudios.flutter_audio_recorder4");
+      developer.log("Filepath is null", name: LOG_NAME);
       return;
     }
 
@@ -119,16 +125,17 @@ class FlutterAudioRecorder4 {
 
   Future<bool> invokeNativeInit() async {
     try {
+      //TODO - CHRIS - is there any reason all recording values should not be passed to init?
       var result = await METHOD_CHANNEL.invokeMethod(
           NativeMethodCall.INIT.methodName,
           {
-            NamedArguments.FILEPATH: filepath,
-            NamedArguments.EXTENSION: extension,
-            NamedArguments.SAMPLE_RATE: sampleRate
+            NamedArguments.FILEPATH: recording.filepath,
+            NamedArguments.EXTENSION: recording.extension,
+            NamedArguments.SAMPLE_RATE: recording.sampleRate
           }
       );
 
-      recording = result != false ? Map.from(result).toRecording(localFileSystem: _localFileSystem) : Recording.createDefaultRecording();
+      recording = Map.from(result).toRecording() ?? recording;
 
       return true;
     } catch(exception) {
@@ -146,15 +153,7 @@ class FlutterAudioRecorder4 {
           NamedArguments.CHANNEL:channel                          //TODO - CHRIS - why pass channel when Android not using it?
         }
     );
-
-    if (result != null && recording?.recorderState != RecorderState.STOPPED) {//TODO - CHRIS - why only when stopped?
-      Map<String, Object> response = Map.from(result);
-      var recordingFromResponse = response.toRecording(localFileSystem: _localFileSystem);
-      if (recordingFromResponse != null) {
-        recording = recordingFromResponse;
-      }
-    }
-
+    recording = Map.from(result).toRecording() ?? recording;
     return recording;
   }
 
@@ -162,45 +161,29 @@ class FlutterAudioRecorder4 {
   /// Once executed, audio recording will start working and
   /// a file will be generated in user's file system
   Future start() async {
-    return METHOD_CHANNEL.invokeMethod(NativeMethodCall.START.methodName);
+    //TODO - CHRIS - should recording be returned from start or should null? Currently it's null and I'm trying to avoid changing it
+    //There is an exception that can be thrown though, so maybe add an error state to the recording, to indicate a problem and then just return the recording
+    await METHOD_CHANNEL.invokeMethod(NativeMethodCall.START.methodName);
+    recording = await current() ?? recording;
   }
 
   /// Request currently [Recording] recording to be [Paused]
   /// Note: Use [current] to get latest state of recording after [pause]
-  Future pause() async {
-    return METHOD_CHANNEL.invokeMethod(NativeMethodCall.PAUSE.methodName);
-  }
+  Future pause() async => METHOD_CHANNEL.invokeMethod(NativeMethodCall.PAUSE.methodName);
 
   /// Request currently [Paused] recording to continue
-  Future resume() async {
-    return METHOD_CHANNEL.invokeMethod(NativeMethodCall.RESUME.methodName);
-  }
+  Future resume() async => METHOD_CHANNEL.invokeMethod(NativeMethodCall.RESUME.methodName);
 
   /// Request the recording to stop
-  /// Once its stopped, the recording file will be finalized
-  /// and will not be start, resume, pause anymore.
-  Future<Recording?> stop() async {
+  /// Once its stopped, the recording file will be finalized and will not start, resume, pause anymore.
+  /// Stop may be called as many times as desired, but the recording will only be stopped once.
+  Future<Recording> stop() async {
     var result = await METHOD_CHANNEL.invokeMethod(NativeMethodCall.STOP.methodName);
-
-    if (result != null) {
-      Map<String, Object> response = Map.from(result);
-      var recordingFromResponse = response.toRecording(localFileSystem: _localFileSystem);
-      if (recordingFromResponse != null) {
-        recording = recordingFromResponse;
-      }
-    }
-
+    recording = Map.from(result).toRecording() ?? recording;//result will be null if recording is already stopped, so the current recording will be returned
     return recording;
   }
 
-  bool isRecording() => recording?.isRecording() ?? false;
-  bool isRecordingStopped() => recording?.isRecordingStopped() ?? true;
-  bool hasPlayableAudio() => recording?.hasPlayableAudio() ?? false;
-
-  //TODO - CHRIS - what is this?
-  Future<String?> getPlatformVersion() {
-    return FlutterAudioRecorder4Platform.instance.getPlatformVersion();
-  }
+  Future<String> getPlatformVersion() async => await FlutterAudioRecorder4Platform.instance.getPlatformVersion() ?? "Unknown platform version";
   
   Future<void> methodHandler(MethodCall call) async {
     if (call.method == FlutterMethodCall.HAS_PERMISSIONS.methodName) {
