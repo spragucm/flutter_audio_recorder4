@@ -11,8 +11,6 @@ import com.tcubedstudios.flutter_audio_recorder4.NamedArguments.RECORDER_STATE
 import com.tcubedstudios.flutter_audio_recorder4.NamedArguments.SAMPLE_RATE
 import android.Manifest.permission.RECORD_AUDIO
 import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-import android.annotation.SuppressLint
-import android.app.Activity
 import android.media.AudioFormat.CHANNEL_IN_MONO
 import android.media.AudioFormat.ENCODING_PCM_16BIT
 import android.media.AudioRecord
@@ -94,23 +92,22 @@ class FlutterAudioRecorder4Plugin(
   private fun handleInit(call: MethodCall, result: Result) {
     resetRecorder()
 
-    filePath = call.argument<Any>(FILEPATH).toString()
-    extension = call.argument<Any>(EXTENSION).toString()
-    sampleRate = call.argument<Any>(SAMPLE_RATE).toString().toLong()
+    filePath = call.argument<Any?>(FILEPATH)?.toString()
+    extension = call.argument<Any?>(EXTENSION)?.toString()
+    sampleRate = call.argument<Any?>(SAMPLE_RATE)?.toString()?.toLong() ?: 0L
     bufferSize = AudioRecord.getMinBufferSize(sampleRate.toInt(), CHANNEL_IN_MONO, ENCODING_PCM_16BIT)
-
-    recorderState = if (filePath != null && extension != null) INITIALIZED else UNSET
+    recorderState = if (filePath.isNullOrBlank().not() && extension.isNullOrBlank().not()) INITIALIZED else UNSET
 
     val initResult = mapOf<String, Any?>(
-        FILEPATH to filePath,
-        EXTENSION to extension,
-        DURATION to 0,
-        AUDIO_FORMAT to extension?.toAudioFormat()?.name,
-        RECORDER_STATE to recorderState.value,
-        METERING_ENABLED to true,
-        PEAK_POWER to peakPower,
-        AVERAGE_POWER to averagePower,
-        SAMPLE_RATE to sampleRate
+            FILEPATH to filePath,
+            EXTENSION to extension,
+            DURATION to 0,
+            AUDIO_FORMAT to extension?.toAudioFormat()?.name,
+            RECORDER_STATE to recorderState.value,
+            METERING_ENABLED to true,
+            PEAK_POWER to peakPower,
+            AVERAGE_POWER to averagePower,
+            SAMPLE_RATE to sampleRate
     )
 
     result.success(initResult)
