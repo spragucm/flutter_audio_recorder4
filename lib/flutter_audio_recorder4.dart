@@ -21,11 +21,6 @@ class FlutterAudioRecorder4 {
   static LocalFileSystem LOCAL_FILE_SYSTEM = const LocalFileSystem();
   static const String LOG_NAME = "com.tcubedstudios.flutter_audio_recorder4";
 
-  //TODO - CHRIS - when recorder supports multiple files, select the most recent file
-  bool get isRecording => recording.isRecording();
-  bool get isStopped => recording.isStopped();
-  bool get hasPlayableAudio => recording.isPlayable();
-
   //This is static because hasPermissions and revokePermissions are static - the prior API is driving this
   static bool ALL_PERMISSIONS_GRANTED = false;
   static Function(bool hasPermissions)? _hasPermissionsExternalCallback;
@@ -57,6 +52,12 @@ class FlutterAudioRecorder4 {
   Future<int> get recordingFileSizeInBytes => _localFileSystem.fileSizeInBytes(recording);
 
   late Future initialized;
+
+  //TODO - CHRIS - when recorder supports multiple files, select the most recent file
+  bool get needsToBeInitialized => recording.needsToBeInitialized;
+  bool get isRecording => recording.isRecording;
+  bool get isStopped => recording.isStopped;
+  bool get hasPlayableAudio => recording.isPlayable;
 
   // .wav <---> AudioFormat.WAV
   // .mp4 .m4a .aac <---> AudioFormat.AAC

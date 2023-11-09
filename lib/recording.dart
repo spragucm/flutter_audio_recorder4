@@ -21,15 +21,16 @@ class Recording {
   RecorderState recorderState = DEFAULT_RECORDER_STATE;
   int sampleRate = DEFAULT_SAMPLE_RATE_KHZ;
 
+  bool get needsToBeInitialized => recorderState == RecorderState.UNSET || recorderState == RecorderState.STOPPED;
+  bool get isRecording => recorderState == RecorderState.PAUSED || recorderState == RecorderState.RECORDING;
+  bool get isStopped => recorderState == RecorderState.STOPPED;
+  bool get isPlayable => isStopped && duration.inMilliseconds > 0;
+
   AudioMetering audioMetering = AudioMetering(
       averagePower: AudioMetering.DEFAULT_AVERAGE_POWER,
       peakPower: AudioMetering.DEFAULT_PEAK_POWER,
       meteringEnabled: AudioMetering.DEFAULT_METERING_ENABLED
   );
-
-  bool isRecording() => recorderState == RecorderState.PAUSED || recorderState == RecorderState.RECORDING;
-  bool isStopped() => recorderState == RecorderState.STOPPED;
-  bool isPlayable() => isStopped() && duration.inMilliseconds > 0;
 }
 
 extension RecordingExtensionUtils on Map<dynamic, dynamic>? {
@@ -57,8 +58,8 @@ extension FileUtils on LocalFileSystem {
     // There could technically be an empty file that a caller would like to delete,
     // so, don't account for playable audio
     var filepath = recording.filepath;
-    var isPlayable = onlyIfPlayable ? recording.isPlayable() : true;
-    if (recording.isStopped() && filepath != null && isPlayable) {
+    var isPlayable = onlyIfPlayable ? recording.isPlayable : true;
+    if (recording.isStopped && filepath != null && isPlayable) {
       return file(filepath);
     } else {
       return null;
