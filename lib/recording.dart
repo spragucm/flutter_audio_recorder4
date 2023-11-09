@@ -10,7 +10,7 @@ class Recording {
 
   static String DEFAULT_EXTENSION = AudioExtension.M4A.extension;
   static Duration DEFAULT_DURATION = const Duration();
-  static AudioFormat DEFAULT_AUDIO_FORMAT = DEFAULT_EXTENSION.toAudioFormat()!;
+  static AudioFormat DEFAULT_AUDIO_FORMAT = AudioExtension.M4A.audioFormat;
   static const RecorderState DEFAULT_RECORDER_STATE = RecorderState.UNSET;
   static const int DEFAULT_SAMPLE_RATE_KHZ = 16000;
 

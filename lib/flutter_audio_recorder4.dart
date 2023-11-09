@@ -21,22 +21,29 @@ class FlutterAudioRecorder4 {
   static LocalFileSystem LOCAL_FILE_SYSTEM = const LocalFileSystem();
   static const String LOG_NAME = "com.tcubedstudios.flutter_audio_recorder4";
 
-  //TODO - CHRIS - I don't like the static methods
-  static Function(bool hasPermissions)? hasPermissionsCallback;
-
   //TODO - CHRIS - when recorder supports multiple files, select the most recent file
   bool get isRecording => recording.isRecording();
   bool get isStopped => recording.isStopped();
   bool get hasPlayableAudio => recording.isPlayable();
 
+  //This is static because hasPermissions and revokePermissions are static - the prior API is driving this
+  static bool ALL_PERMISSIONS_GRANTED = false;
+  static Function(bool hasPermissions)? _hasPermissionsExternalCallback;
+  static Function(bool hasPermissions) HAS_PERMISSIONS_CALLBACK = (bool hasPermissions){
+      ALL_PERMISSIONS_GRANTED = hasPermissions;
+      _hasPermissionsExternalCallback?.call(ALL_PERMISSIONS_GRANTED);
+  };
+
   /// Returns the result of record permission
   /// if not determined(app first launch),
   /// this will ask user to whether grant the permission
-  /// TODO - CHRIS - rely on permissions_handler instead of our own code
   static Future<bool?> get hasPermissions async {
-    return await METHOD_CHANNEL.invokeMethod(NativeMethodCall.HAS_PERMISSIONS.methodName);
+    var allPermissionsGranted = await METHOD_CHANNEL.invokeMethod(NativeMethodCall.HAS_PERMISSIONS.methodName);
+    HAS_PERMISSIONS_CALLBACK(allPermissionsGranted);
+    return ALL_PERMISSIONS_GRANTED;
   }
 
+  // This is static because hasPermissions is static - the prior API is driving this
   static Future get revokePermissions async {
     return await METHOD_CHANNEL.invokeMethod(NativeMethodCall.REVOKE_PERMISSIONS.methodName);
   }
@@ -59,12 +66,18 @@ class FlutterAudioRecorder4 {
       {
         AudioFormat? audioFormat,
         int sampleRate = Recording.DEFAULT_SAMPLE_RATE_KHZ,
-        LocalFileSystem? localFileSystem
+        LocalFileSystem? localFileSystem,
+        bool? automaticallyRequestPermissions = true,
+        Function(bool)? hasPermissionsCallback
       }
   ) {
     _localFileSystem = localFileSystem ?? const LocalFileSystem();
-    initialized = init(filepath, audioFormat, sampleRate);
+    _hasPermissionsExternalCallback = hasPermissionsCallback ?? HAS_PERMISSIONS_CALLBACK;
     METHOD_CHANNEL.setMethodCallHandler(methodHandler);
+
+    initialized = init(filepath, audioFormat, sampleRate);
+
+    if (automaticallyRequestPermissions ?? false) hasPermissions;
   }
 
   Future init(String? filepath, AudioFormat? audioFormat, int sampleRate) async {
@@ -194,6 +207,6 @@ class FlutterAudioRecorder4 {
   }
 
   void handleHasPermissions(bool hasPermissions) {
-    hasPermissionsCallback?.call(hasPermissions);
+    HAS_PERMISSIONS_CALLBACK?.call(hasPermissions);
   }
 }

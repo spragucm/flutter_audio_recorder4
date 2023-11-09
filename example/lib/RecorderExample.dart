@@ -20,26 +20,16 @@ class RecorderExample extends StatefulWidget {
 
   final LocalFileSystem localFileSystem;
 
-  const RecorderExample({super.key, localFileSystem}) : this.localFileSystem = localFileSystem ?? const LocalFileSystem();
+  const RecorderExample({super.key, localFileSystem}) : localFileSystem = localFileSystem ?? const LocalFileSystem();
 
   @override
-  State<StatefulWidget> createState() => RecorderExampleState(localFileSystem);
+  State<StatefulWidget> createState() => RecorderExampleState(localFileSystem: localFileSystem);
 }
 
 //TODO - CHRIS - to make it easier to use this library, make a super State class that users can inherit so that they can inherit the boiler plate
 class RecorderExampleState extends State<RecorderExample> {
 
   late FlutterAudioRecorder4 recorder;
-  //Recording get recording => recorder.recording;
-
-  // Only holding the individual recording values in order to trigger UI updates when the values change
-  // All recording management is done by the recorder
-  // String? filepath;
-  // String? extenion;
-  // Duration? duration;
-  // AudioFormat? audioFormat;
-  // RecorderState? recorderState;
-  // int? sampleRate;
 
   String platformVersion = "";
   String libraryVersion = "TODO";
@@ -47,26 +37,31 @@ class RecorderExampleState extends State<RecorderExample> {
   bool hasPermissions = false;
   bool isRevoked = false;
 
-  RecorderExampleState(LocalFileSystem? localFileSystem) {
-    recorder = FlutterAudioRecorder4(null, audioFormat: AudioFormat.AAC, localFileSystem: localFileSystem);
+  RecorderExampleState({LocalFileSystem? localFileSystem }) {
+    recorder = FlutterAudioRecorder4(
+        null,                                           // No need to avoid a null filepath
+        audioFormat: AudioFormat.AAC,
+        localFileSystem: localFileSystem,
+        automaticallyRequestPermissions: true,          // This is true by default, just highlighting it so that callers can disable if desired
+        hasPermissionsCallback: hasPermissionsCallback  // If a callback was passed into CTOR, it will be triggered with the result, so no need to wait
+    );
   }
 
   @override
   void initState() {
-    //TODO - OLD CODE - implement initState
     super.initState();
     init();
   }
 
   void init() async {
-    try {
-      //TODO - CHRIS - I don't like the static callback
-      FlutterAudioRecorder4.hasPermissionsCallback = hasPermissionsCallback;
-      hasPermissionsCallback(await FlutterAudioRecorder4.hasPermissions ?? false);
-      updatePlatformVersion();
-    } catch (exception) {
-      developer.log("RecorderExample init exception:$exception");
-    }
+    // Waiting until init() to determine path because ctor isn't async
+    io.Directory? appDocDirectory = await getAppDocDirectory();
+    if (appDocDirectory == null) throw const FileSystemException("Could not get app doc directory");
+
+    // Can add extensions like ".mp4 ".wav" ".m4a" ".aac"
+    recorder.recording.filepath = '${appDocDirectory.path}/flutter_audio_recorder_${DateTime.now().millisecondsSinceEpoch}';
+
+    updatePlatformVersion();
   }
 
   Future<void> updatePlatformVersion() async {
@@ -76,53 +71,31 @@ class RecorderExampleState extends State<RecorderExample> {
     });
   }
 
-  //TODO - CHRIS - the caller should be able to be notified when the recorder has permissions changes,
-  //however, the caller should not be responsible for handling what to do with the recorder based on permissions.
-  //That should all be internal to the recorder.
-  //There also needs to be an option in the recorder to auto-request permissions or trigger request from caller
   Future<void> hasPermissionsCallback(hasPermissions) async {
-    if (hasPermissions) {
-      await handleHasPermissions();
-    } else {
-      handleDoesNotHavePermissions();
+
+    developer.log("HasPermissionsCallback hasPermissions:$hasPermissions RecorderState:${recorder.recording.recorderState}");
+
+    setState(() {
+      this.hasPermissions = hasPermissions;
+    });
+
+    if (!hasPermissions) {
+      showDoesNotHavePermissionsSnackBar();
     }
   }
+
+  showDoesNotHavePermissionsSnackBar() => ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text("You must accept all permissions"))
+  );
 
   //TODO - CHRIS - there is no reason to wait to init the recorder until permissions are accepted
   //Instead, when the user goes to record, show the snackbar notification
-  Future<void> handleHasPermissions() async {
-    String customPath = '/flutter_audio_recorder_';
-
-    io.Directory? appDocDirectory = await getAppDocDirectory();
-    if (appDocDirectory == null) throw const FileSystemException("Could not get app doc directory");
-
-    // Can add extensions like ".mp4 ".wav" ".m4a" ".aac"
-    customPath = appDocDirectory.path +
-                 customPath +
-                 DateTime.now().millisecondsSinceEpoch.toString();
-
-    try {
-      await recorder.initialized;
-      await updateRecording();
-    } catch(exception) {
-      developer.log("Initialized exception:$exception");
-    }
-
-    // Recorder should now be INITIALIZED if everything is working
-    setState(() {
-      hasPermissions = true;
-      developer.log("RecorderState:${recorder.recording.recorderState}");
-    });
-  }
-
-  void handleDoesNotHavePermissions() {
-    setState(() {
-      hasPermissions = false;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("You must accept all permissions"))
-    );
-  }
+  /*try {
+  await recorder.initialized;
+  await updateRecording();
+  } catch(exception) {
+  developer.log("Initialized exception:$exception");
+  }// Recorder should now be INITIALIZED if everything is working*/
 
   void start() async {
     try {
@@ -256,10 +229,7 @@ class RecorderExampleState extends State<RecorderExample> {
 
   Widget buildGetPermissionsButton() => TextButton(
     onPressed: () async {
-      bool? hasPermissions = await FlutterAudioRecorder4.hasPermissions ?? this.hasPermissions;
-      setState(() {
-        this.hasPermissions = hasPermissions;
-      });
+      FlutterAudioRecorder4.hasPermissions;// No need to await; all is handled by hasPermissionsCallback
     },
     style: buildButtonStyle(),
     child: Text("Request Permissions", style: buildButtonTextStyle())
