@@ -150,7 +150,7 @@ class FlutterAudioRecorder4Plugin(
     recorder?.startRecording()
     recorderState = RECORDING
     startThread()
-    result.success(null)
+    result.success(recording)
   }
 
   private fun handlePause(result: Result) {
@@ -159,19 +159,19 @@ class FlutterAudioRecorder4Plugin(
     averagePower = DEFAULT_AVERAGE_POWER
     recorder?.stop()
     recordingThread = null
-    result.success(null)
+    result.success(recording)
   }
 
   private fun handleResume(result: Result) {
     recorderState = RECORDING
     recorder?.startRecording()
     startThread()
-    result.success(null)//TODO - CHRIS - why null vs success?
+    result.success(recording)
   }
 
   private fun handleStop(result: Result) {
     if (recorderState == STOPPED) {
-      result.success(null)
+      result.success(recording)
     } else {
       recorderState = STOPPED
 
@@ -194,7 +194,7 @@ class FlutterAudioRecorder4Plugin(
 
       deleteTempFile()
 
-      result.success(currentResult)
+      result.success(recording)
     }
   }
 
