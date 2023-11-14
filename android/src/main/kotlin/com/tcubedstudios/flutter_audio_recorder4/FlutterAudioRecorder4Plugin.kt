@@ -47,6 +47,7 @@ class FlutterAudioRecorder4Plugin(
   // If recorder is ever expected to operate in a background service, implement ServiceAware interface.
 
   companion object {
+    private const val DEFAULT_SAMPLE_RATE_KHZ = 16000L
     private const val DEFAULT_PEAK_POWER = -120.0
     private const val DEFAULT_AVERAGE_POWER = -120.0
     private const val DEFAULT_DATA_SIZE = 0L
@@ -61,7 +62,7 @@ class FlutterAudioRecorder4Plugin(
     PermissionToRequest(WRITE_EXTERNAL_STORAGE, maxSdk = VERSION_CODES.LOLLIPOP_MR1)//WR_EX_ST was removed in M, so last allowed version is LP_MR1
   )
 
-  private var sampleRate = 16000L//Khz
+  private var sampleRateKhz = DEFAULT_SAMPLE_RATE_KHZ
   private var dataSize = DEFAULT_DATA_SIZE
   private var peakPower = DEFAULT_PEAK_POWER
   private var averagePower = DEFAULT_AVERAGE_POWER
@@ -78,7 +79,7 @@ class FlutterAudioRecorder4Plugin(
   private val filepathTemp: String?
     get() = filepath?.plus(".temp")
   private val duration: Int
-    get() = (dataSize / (sampleRate * 2 * 1)).toInt()
+    get() = (dataSize / (sampleRateKhz * 2 * 1)).toInt()
   private val recording: Map<String, Any?>
     get() = mapOf(
       FILEPATH to filepath,
@@ -90,7 +91,7 @@ class FlutterAudioRecorder4Plugin(
       METERING_ENABLED to meteringEnabled,
       PEAK_POWER to peakPower,
       AVERAGE_POWER to averagePower,
-      SAMPLE_RATE to sampleRate,
+      SAMPLE_RATE to sampleRateKhz,
       MESSAGE to message
     )
 
@@ -119,8 +120,8 @@ class FlutterAudioRecorder4Plugin(
 
       filepath = call.argument<Any?>(FILEPATH)?.toString()
       extension = call.argument<Any?>(EXTENSION)?.toString()
-      sampleRate = call.argument<Any?>(SAMPLE_RATE)?.toString()?.toLong() ?: sampleRate
-      bufferSize = AudioRecord.getMinBufferSize(sampleRate.toInt(), CHANNEL_IN_MONO, ENCODING_PCM_16BIT)
+      sampleRateKhz = call.argument<Any?>(SAMPLE_RATE)?.toString()?.toLong() ?: sampleRateKhz
+      bufferSize = AudioRecord.getMinBufferSize(sampleRateKhz.toInt(), CHANNEL_IN_MONO, ENCODING_PCM_16BIT)
       recorderState = if (filepath.isNullOrBlank().not() && extension.isNullOrBlank().not()) INITIALIZED else UNSET
       message = ""
       result.success(recording)
@@ -132,7 +133,7 @@ class FlutterAudioRecorder4Plugin(
   private fun handleCurrent(result: Result) = result.success(recording)
 
   private fun handleStart(result: Result) {
-    recorder = AudioRecord(MIC, sampleRate.toInt(), CHANNEL_IN_MONO, ENCODING_PCM_16BIT, bufferSize)
+    recorder = AudioRecord(MIC, sampleRateKhz.toInt(), CHANNEL_IN_MONO, ENCODING_PCM_16BIT, bufferSize)
 
     try {
       fileOutputStream = FileOutputStream(filepathTemp)
@@ -255,8 +256,8 @@ class FlutterAudioRecorder4Plugin(
       val totalDataLength = totalAudioLength + 36
 
       val channels = 1
-      val byteRate = RECORDER_BPP * sampleRate * channels / 8
-      writeWaveFileHeader(outputFileStream, totalAudioLength, totalDataLength, sampleRate, channels, byteRate)
+      val byteRate = RECORDER_BPP * sampleRateKhz * channels / 8
+      writeWaveFileHeader(outputFileStream, totalAudioLength, totalDataLength, sampleRateKhz, channels, byteRate)
 
       val data = ByteArray(bufferSize)
       while (inputFileStream.read(data) != -1) {
