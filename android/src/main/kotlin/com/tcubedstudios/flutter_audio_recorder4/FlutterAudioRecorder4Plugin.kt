@@ -34,6 +34,9 @@ import java.io.IOException
 import kotlin.math.abs
 import kotlin.math.ln
 
+//TODO - CHRIS - use a state machine
+//https://github.com/Tinder/StateMachine -> supports kotlin and swift
+
 //Registrar is passed for Android plugin v1 compatibility
 class FlutterAudioRecorder4Plugin(
     registrar: Registrar? = null,
