@@ -103,7 +103,7 @@ class FlutterAudioRecorder4 {
 
   Future<Recording> init(String? filepath, AudioFormat? audioFormat, int sampleRate) async {
 
-    Map<String, String?> pathAndExtension = resolvePathAndExtension(filepath, audioFormat);
+    Map<String, String?> pathAndExtension = await resolvePathAndExtension(filepath, audioFormat);
     recording.filepath = pathAndExtension[NamedArguments.FILEPATH];
     recording.extension = pathAndExtension[NamedArguments.EXTENSION] ?? Recording.DEFAULT_EXTENSION;
     recording.audioFormat = recording.extension.toAudioFormat() ?? Recording.DEFAULT_AUDIO_FORMAT;
@@ -115,7 +115,7 @@ class FlutterAudioRecorder4 {
     await invokeNativeInit();
   }
 
-  Map<String, String?> resolvePathAndExtension(String? filepath, AudioFormat? audioFormat) {
+  Future<Map<String, String?>> resolvePathAndExtension(String? filepath, AudioFormat? audioFormat) async {
 
     String? pathExtension = filepath == null ? null : path_library.extension(filepath);
     AudioFormat? extensionAudioFormat = pathExtension?.toAudioFormat();
@@ -136,25 +136,31 @@ class FlutterAudioRecorder4 {
       extension = pathExtension!;
     }
 
+    var resolvedFilepath = filepath == null ? filepath : path_library.withoutExtension(filepath) + extension;
+    var message = await validateFilepath(resolvedFilepath);
+
     return {
-      NamedArguments.FILEPATH : filepath == null ? filepath : path_library.withoutExtension(filepath) + extension,
-      NamedArguments.EXTENSION : extension
+      NamedArguments.FILEPATH : resolvedFilepath,
+      NamedArguments.EXTENSION : extension,
+      NamedArguments.MESSAGE : message
     };
   }
 
-  void validateFilepath(String? filepath) async {
+  Future<String> validateFilepath(String? filepath) async {
 
+    var generalMessage = "Recorder not initialized.";
     if (filepath == null) {
-      developer.log("Filepath is null", name: LOG_NAME);
-      return;
+      return "Filepath is null.$generalMessage";
     }
 
     File file = LOCAL_FILE_SYSTEM.file(filepath);
     if (await file.exists()) {
-      throw Exception("A file already exists at the path :$filepath");
+      return "A file already exists at the path :$filepath.$generalMessage";
     } else if (!await file.parent.exists()) {
-      throw Exception("The specified parent directory does not exist");
+      return "The specified parent directory does not exist.$generalMessage";
     }
+
+    return "";
   }
 
   bool _updateRecording(result, String? updatedMessage, String? notUpdatedMessage) {
