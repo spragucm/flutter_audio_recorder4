@@ -79,6 +79,20 @@ class FlutterAudioRecorder4Plugin(
     get() = filepath?.plus(".temp")
   private val duration: Int
     get() = (dataSize / (sampleRate * 2 * 1)).toInt()
+  private val recording: Map<String, Any?>
+    get() = mapOf(
+      FILEPATH to filepath,
+      FILEPATH_TEMP to filepathTemp,
+      EXTENSION to extension,
+      DURATION to duration * 1000,
+      AUDIO_FORMAT to extension?.toAudioFormat()?.name,
+      RECORDER_STATE to recorderState.value,
+      METERING_ENABLED to meteringEnabled,
+      PEAK_POWER to peakPower,
+      AVERAGE_POWER to averagePower,
+      SAMPLE_RATE to sampleRate,
+      MESSAGE to message
+    )
 
   //region Handle method calls from flutter
   override fun onMethodCall(call: MethodCall, result: Result) {
@@ -86,11 +100,11 @@ class FlutterAudioRecorder4Plugin(
 
     when(call.method.toMethodCall()) {
       INIT -> handleInit(call, result)
-      CURRENT -> handleCurrent(call, result)
-      START -> handleStart(call, result)
-      PAUSE -> handlePause(call, result)
-      RESUME -> handleResume(call, result)
-      STOP -> handleStop(call, result)
+      CURRENT -> handleCurrent(result)
+      START -> handleStart(result)
+      PAUSE -> handlePause(result)
+      RESUME -> handleResume(result)
+      STOP -> handleStop(result)
       else -> result.notImplemented()
     }
   }
@@ -121,23 +135,9 @@ class FlutterAudioRecorder4Plugin(
     result.success(initResult)
   }
 
-  private fun handleCurrent(call: MethodCall, result: Result) {
-    val currentResult = mapOf(
-        FILEPATH to if (recorderState == STOPPED) filePath else tempFileName,
-        EXTENSION to extension,
-        DURATION to duration * 1000,
-        AUDIO_FORMAT to extension?.toAudioFormat()?.name,
-        RECORDER_STATE to recorderState.value,
-        METERING_ENABLED to true,
-        PEAK_POWER to peakPower,
-        AVERAGE_POWER to averagePower,
-        SAMPLE_RATE to sampleRate
-    )
+  private fun handleCurrent(result: Result) = result.success(recording)
 
-    result.success(currentResult)
-  }
-
-  private fun handleStart(call: MethodCall, result: Result) {
+  private fun handleStart(result: Result) {
     recorder = AudioRecord(MIC, sampleRate.toInt(), CHANNEL_IN_MONO, ENCODING_PCM_16BIT, bufferSize)
 
     try {
@@ -153,7 +153,7 @@ class FlutterAudioRecorder4Plugin(
     result.success(null)
   }
 
-  private fun handlePause(call: MethodCall, result: Result) {
+  private fun handlePause(result: Result) {
     recorderState = PAUSED
     peakPower = DEFAULT_PEAK_POWER
     averagePower = DEFAULT_AVERAGE_POWER
@@ -162,29 +162,19 @@ class FlutterAudioRecorder4Plugin(
     result.success(null)
   }
 
-  private fun handleResume(call: MethodCall, result: Result) {
+  private fun handleResume(result: Result) {
     recorderState = RECORDING
     recorder?.startRecording()
     startThread()
     result.success(null)//TODO - CHRIS - why null vs success?
   }
 
-  private fun handleStop(call: MethodCall, result: Result) {
+  private fun handleStop(result: Result) {
     if (recorderState == STOPPED) {
       result.success(null)
     } else {
       recorderState = STOPPED
 
-      val currentResult = mapOf(
-        DURATION to duration * 1000,
-        FILEPATH to filePath,
-        AUDIO_FORMAT to extension,
-        PEAK_POWER to peakPower,
-        AVERAGE_POWER to averagePower,
-        METERING_ENABLED to true,
-        RECORDER_STATE to recorderState
-      )
-      
       resetRecorder()
       recordingThread = null
       recorder?.stop()
