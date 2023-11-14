@@ -1,4 +1,6 @@
+import 'package:flutter_audio_recorder4/recorder_state.dart';
 import 'package:flutter_audio_recorder4/recording.dart';
+import 'audio_metering.dart';
 import 'flutter_method_call.dart';
 import 'named_arguments.dart';
 import 'audio_extension.dart';
@@ -46,7 +48,23 @@ class FlutterAudioRecorder4 {
   late LocalFileSystem _localFileSystem;
 
   //TODO - CHRIS - get most recent recording when recorder supports multiple recordings
+  //will likely need to be methods with recording name passed as arg
   Recording recording = Recording();
+  String? get filepath => recording.filepath;
+  set filepath(String? path) => { recording.filepath = path };
+  String get extension => recording.extension;
+  Duration get duration => recording.duration;
+  AudioFormat get audioFormat => recording.audioFormat;
+  RecorderState get recorderState => recording.recorderState;
+  int get sampleRate => recording.sampleRate;
+  AudioMetering get audioMetering => recording.audioMetering;
+  double get averagePower => audioMetering.averagePower;
+  double get peakPower => audioMetering.peakPower;
+  bool get meteringEnabled => audioMetering.meteringEnabled;
+  bool get needsToBeInitialized => recording.needsToBeInitialized;
+  bool get isRecording => recording.isRecording;
+  bool get isStopped => recording.isStopped;
+  bool get isPlayable => recording.isPlayable;
   File? get recordingFile => _localFileSystem.toFile(recording);
   File? get playableRecordingFile => _localFileSystem.toFile(recording, onlyIfPlayable: true);
   Future<int> get recordingFileSizeInBytes => _localFileSystem.fileSizeInBytes(recording);
@@ -56,8 +74,6 @@ class FlutterAudioRecorder4 {
   //TODO - CHRIS - when recorder supports multiple files, select the most recent file
   bool get needsToBeInitialized => recording.needsToBeInitialized;
   bool get isRecording => recording.isRecording;
-  bool get isStopped => recording.isStopped;
-  bool get hasPlayableAudio => recording.isPlayable;
 
   // .wav <---> AudioFormat.WAV
   // .mp4 .m4a .aac <---> AudioFormat.AAC
