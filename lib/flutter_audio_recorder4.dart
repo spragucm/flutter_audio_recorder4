@@ -109,10 +109,12 @@ class FlutterAudioRecorder4 {
     recording.audioFormat = recording.extension.toAudioFormat() ?? Recording.DEFAULT_AUDIO_FORMAT;
     recording.sampleRate = sampleRate;
 
-    validateFilepath(filepath);
+    //TODO - CHRIS - handle when init fails and notify callback
+    if(await _invokeNativeInit()) {
+      onInitializedCallback?.call();
+    }
 
-    //TODO - CHRIS - should handle when init fails and notify callback
-    await invokeNativeInit();
+    return recording;
   }
 
   Future<Map<String, String?>> resolvePathAndExtension(String? filepath, AudioFormat? audioFormat) async {
