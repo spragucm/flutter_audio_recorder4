@@ -7,8 +7,10 @@ object NamedArguments {
     const val DURATION = "duration"
     const val EXTENSION = "extension"
     const val FILEPATH = "filepath"
+    const val FILEPATH_TEMP = "filepathTemp"
     const val METERING_ENABLED = "meteringEnabled"
     const val PEAK_POWER = "peakPower"
     const val RECORDER_STATE = "recorderState"
     const val SAMPLE_RATE = "sampleRate"
+    const val MESSAGE = "message"
 }

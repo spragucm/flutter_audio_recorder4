@@ -19,6 +19,8 @@ import android.os.Build.VERSION_CODES
 import com.tcubedstudios.flutter_audio_recorder4.AudioExtension.Companion.toAudioFormat
 import com.tcubedstudios.flutter_audio_recorder4.MethodCalls.*
 import com.tcubedstudios.flutter_audio_recorder4.MethodCalls.Companion.toMethodCall
+import com.tcubedstudios.flutter_audio_recorder4.NamedArguments.FILEPATH_TEMP
+import com.tcubedstudios.flutter_audio_recorder4.NamedArguments.MESSAGE
 import com.tcubedstudios.flutter_audio_recorder4.RecorderState.*
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -64,11 +66,12 @@ class FlutterAudioRecorder4Plugin(
   private var fileOutputStream: FileOutputStream? = null
   private var recordingThread: Thread? = null
   private var recorder: AudioRecord? = null
-  private var filePath: String? = null
+  private var filepath: String? = null
   private var extension: String? = null
+  private var message: String? = null
 
-  private val tempFileName: String?
-    get() = filePath?.plus(".temp")
+  private val filepathTemp: String?
+    get() = filepath?.plus(".temp")
   private val duration: Int
     get() = (dataSize / (sampleRate * 2 * 1)).toInt()
 
@@ -92,7 +95,7 @@ class FlutterAudioRecorder4Plugin(
   private fun handleInit(call: MethodCall, result: Result) {
     resetRecorder()
 
-    filePath = call.argument<Any?>(FILEPATH)?.toString()
+      filepath = call.argument<Any?>(FILEPATH)?.toString()
     extension = call.argument<Any?>(EXTENSION)?.toString()
     sampleRate = call.argument<Any?>(SAMPLE_RATE)?.toString()?.toLong() ?: 0L
     bufferSize = AudioRecord.getMinBufferSize(sampleRate.toInt(), CHANNEL_IN_MONO, ENCODING_PCM_16BIT)
@@ -133,7 +136,7 @@ class FlutterAudioRecorder4Plugin(
     recorder = AudioRecord(MIC, sampleRate.toInt(), CHANNEL_IN_MONO, ENCODING_PCM_16BIT, bufferSize)
 
     try {
-      fileOutputStream = FileOutputStream(tempFileName)
+      fileOutputStream = FileOutputStream(filepathTemp)
     } catch (exception: FileNotFoundException) {
       result.error("", "cannot find the file", null)
       return
@@ -188,8 +191,8 @@ class FlutterAudioRecorder4Plugin(
         exception.printStackTrace()
       }
 
-      tempFileName?.let { tempFileName ->
-        filePath?.let {filePath ->
+      filepathTemp?.let { tempFileName ->
+        filepath?.let { filePath ->
           copyWaveFile(tempFileName, filePath)
         }
       }
@@ -249,7 +252,7 @@ class FlutterAudioRecorder4Plugin(
 
   //region Files
   private fun deleteTempFile() {
-    tempFileName?.let {
+    filepathTemp?.let {
       val file = File(it)
       if (file.exists()) file.delete()
     }

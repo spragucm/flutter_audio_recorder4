@@ -15,12 +15,13 @@ class Recording {
   static const int DEFAULT_SAMPLE_RATE_KHZ = 16000;
 
   String? filepath;
+  String? filepathTemp;//Don't try to set this manually! It's value is returned from native calls only
   String extension = DEFAULT_EXTENSION;
   Duration duration = DEFAULT_DURATION;
   AudioFormat audioFormat = DEFAULT_AUDIO_FORMAT;
   RecorderState recorderState = DEFAULT_RECORDER_STATE;
   int sampleRate = DEFAULT_SAMPLE_RATE_KHZ;
-
+  String? message;
   bool get needsToBeInitialized => recorderState == RecorderState.UNSET || recorderState == RecorderState.STOPPED;
   bool get isRecording => recorderState == RecorderState.PAUSED || recorderState == RecorderState.RECORDING;
   bool get isStopped => recorderState == RecorderState.STOPPED;
@@ -40,6 +41,7 @@ extension RecordingExtensionUtils on Map<dynamic, dynamic>? {
 
     return Recording()
       ..filepath = map[NamedArguments.FILEPATH] as String?
+      ..filepathTemp = map[NamedArguments.FILEPATH_TEMP] as String?
       ..extension = map[NamedArguments.EXTENSION] as String? ?? Recording.DEFAULT_EXTENSION
       ..duration = Duration(milliseconds: (map[NamedArguments.DURATION] as int?) ?? 0)
       ..audioFormat = (map[NamedArguments.AUDIO_FORMAT] as String?)?.toAudioFormat() ?? AudioFormat.AAC
@@ -49,7 +51,8 @@ extension RecordingExtensionUtils on Map<dynamic, dynamic>? {
           averagePower: map[NamedArguments.AVERAGE_POWER] as double? ?? AudioMetering.DEFAULT_AVERAGE_POWER,
           meteringEnabled: map[NamedArguments.METERING_ENABLED] as bool? ?? AudioMetering.DEFAULT_METERING_ENABLED
       )
-      ..sampleRate = map[NamedArguments.SAMPLE_RATE] as int? ?? Recording.DEFAULT_SAMPLE_RATE_KHZ;
+      ..sampleRate = map[NamedArguments.SAMPLE_RATE] as int? ?? Recording.DEFAULT_SAMPLE_RATE_KHZ
+      ..message = map[NamedArguments.MESSAGE] as String?;
   }
 }
 
