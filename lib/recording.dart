@@ -12,7 +12,7 @@ class Recording {
   static Duration DEFAULT_DURATION = const Duration();
   static AudioFormat DEFAULT_AUDIO_FORMAT = AudioExtension.M4A.audioFormat;
   static const RecorderState DEFAULT_RECORDER_STATE = RecorderState.UNSET;
-  static const int DEFAULT_SAMPLE_RATE_KHZ = 16000;
+  static const int DEFAULT_SAMPLE_RATE_HZ = 16000;
 
   String? filepath;
   String? filepathTemp;//Don't try to set this manually! It's value is returned from native calls only
@@ -20,7 +20,7 @@ class Recording {
   Duration duration = DEFAULT_DURATION;
   AudioFormat audioFormat = DEFAULT_AUDIO_FORMAT;
   RecorderState recorderState = DEFAULT_RECORDER_STATE;
-  int sampleRate = DEFAULT_SAMPLE_RATE_KHZ;
+  int sampleRateHz = DEFAULT_SAMPLE_RATE_HZ;
   String? message;
 
   AudioMetering audioMetering = AudioMetering(
@@ -52,7 +52,7 @@ extension RecordingExtensionUtils on Map<dynamic, dynamic>? {
           averagePower: map[NamedArguments.AVERAGE_POWER] as double? ?? AudioMetering.DEFAULT_AVERAGE_POWER,
           meteringEnabled: map[NamedArguments.METERING_ENABLED] as bool? ?? AudioMetering.DEFAULT_METERING_ENABLED
       )
-      ..sampleRate = map[NamedArguments.SAMPLE_RATE] as int? ?? Recording.DEFAULT_SAMPLE_RATE_KHZ
+      ..sampleRateHz = map[NamedArguments.SAMPLE_RATE_HZ] as int? ?? Recording.DEFAULT_SAMPLE_RATE_HZ
       ..message = map[NamedArguments.MESSAGE] as String?;
   }
 }

@@ -56,7 +56,7 @@ class FlutterAudioRecorder4 {
   Duration get duration => recording.duration;
   AudioFormat get audioFormat => recording.audioFormat;
   RecorderState get recorderState => recording.recorderState;
-  int get sampleRate => recording.sampleRate;
+  int get sampleRateHz => recording.sampleRateHz;
   AudioMetering get audioMetering => recording.audioMetering;
   double get averagePower => audioMetering.averagePower;
   double get peakPower => audioMetering.peakPower;
@@ -82,7 +82,7 @@ class FlutterAudioRecorder4 {
       String? filepath,
       {
         AudioFormat? audioFormat,
-        int sampleRate = Recording.DEFAULT_SAMPLE_RATE_KHZ,
+        int sampleRate = Recording.DEFAULT_SAMPLE_RATE_HZ,//TODO - CHRIS - rename sampleRate to sampleRateHz; this will be a breaking change though
         LocalFileSystem? localFileSystem,
         bool? automaticallyRequestPermissions = true,
         Function(bool)? hasPermissionsCallback,
@@ -101,13 +101,13 @@ class FlutterAudioRecorder4 {
     if (automaticallyRequestPermissions ?? false) hasPermissions;
   }
 
-  Future<Recording> init(String? filepath, AudioFormat? audioFormat, int sampleRate) async {
+  Future<Recording> init(String? filepath, AudioFormat? audioFormat, int sampleRateHz) async {
 
     Map<String, String?> pathAndExtension = await resolvePathAndExtension(filepath, audioFormat);
     recording.filepath = pathAndExtension[NamedArguments.FILEPATH];
     recording.extension = pathAndExtension[NamedArguments.EXTENSION] ?? Recording.DEFAULT_EXTENSION;
     recording.audioFormat = recording.extension.toAudioFormat() ?? Recording.DEFAULT_AUDIO_FORMAT;
-    recording.sampleRate = sampleRate;
+    recording.sampleRateHz = sampleRateHz;
 
     //TODO - CHRIS - handle when init fails and notify callback
     if(await _invokeNativeInit()) {
@@ -185,7 +185,7 @@ class FlutterAudioRecorder4 {
           {
             NamedArguments.FILEPATH: recording.filepath,
             NamedArguments.EXTENSION: recording.extension,
-            NamedArguments.SAMPLE_RATE: recording.sampleRate
+            NamedArguments.SAMPLE_RATE_HZ: recording.sampleRateHz
           }
       );
       return _updateRecording(result, "Recorder initialized", "Recorder not initialized");

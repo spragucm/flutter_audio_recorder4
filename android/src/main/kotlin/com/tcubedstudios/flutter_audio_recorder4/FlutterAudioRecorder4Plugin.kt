@@ -8,7 +8,7 @@ import com.tcubedstudios.flutter_audio_recorder4.NamedArguments.FILEPATH
 import com.tcubedstudios.flutter_audio_recorder4.NamedArguments.METERING_ENABLED
 import com.tcubedstudios.flutter_audio_recorder4.NamedArguments.PEAK_POWER
 import com.tcubedstudios.flutter_audio_recorder4.NamedArguments.RECORDER_STATE
-import com.tcubedstudios.flutter_audio_recorder4.NamedArguments.SAMPLE_RATE
+import com.tcubedstudios.flutter_audio_recorder4.NamedArguments.SAMPLE_RATE_HZ
 import android.Manifest.permission.RECORD_AUDIO
 import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
 import android.media.AudioFormat.CHANNEL_IN_MONO
@@ -94,7 +94,7 @@ class FlutterAudioRecorder4Plugin(
       METERING_ENABLED to meteringEnabled,
       PEAK_POWER to peakPower,
       AVERAGE_POWER to averagePower,
-      SAMPLE_RATE to sampleRateHz,
+      SAMPLE_RATE_HZ to sampleRateHz,
       MESSAGE to message
     )
   //endregion
@@ -117,14 +117,13 @@ class FlutterAudioRecorder4Plugin(
 
   //region Recorder
   private fun handleInit(call: MethodCall, result: Result) {
-//    TODO - CHRIS - need to handle the business logic for determining when the states can be changed
-//    possibly return result.error when cannot init, with message like "already init and recording, must stop recording first"
+
     if (recorderState == UNSET || recorderState == INITIALIZED || recorderState == STOPPED) {
       resetRecorder()
 
       filepath = call.argument<Any?>(FILEPATH)?.toString()
       extension = call.argument<Any?>(EXTENSION)?.toString()
-      sampleRateHz = call.argument<Any?>(SAMPLE_RATE)?.toString()?.toLong() ?: sampleRateHz
+      sampleRateHz = call.argument<Any?>(SAMPLE_RATE_HZ)?.toString()?.toLong() ?: sampleRateHz
       bufferSizeBytes = AudioRecord.getMinBufferSize(sampleRateHz.toInt(), CHANNEL_IN_MONO, ENCODING_PCM_16BIT)
       recorderState = if (filepath.isNullOrBlank().not() && extension.isNullOrBlank().not()) INITIALIZED else UNSET
       message = ""

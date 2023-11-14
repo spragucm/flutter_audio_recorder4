@@ -11,6 +11,6 @@ object NamedArguments {
     const val METERING_ENABLED = "meteringEnabled"
     const val PEAK_POWER = "peakPower"
     const val RECORDER_STATE = "recorderState"
-    const val SAMPLE_RATE = "sampleRate"
+    const val SAMPLE_RATE_HZ = "sampleRateHz"
     const val MESSAGE = "message"
 }

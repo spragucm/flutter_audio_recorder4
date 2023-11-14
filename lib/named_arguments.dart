@@ -9,6 +9,6 @@ class NamedArguments {
   static String METERING_ENABLED = "meteringEnabled";
   static String PEAK_POWER = "peakPower";
   static String RECORDER_STATE = "recorderState";
-  static String SAMPLE_RATE = "sampleRate";
+  static String SAMPLE_RATE_HZ = "sampleRateHz";
   static String MESSAGE = "message";
 }
