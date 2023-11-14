@@ -39,7 +39,7 @@ class RecorderExampleState extends State<RecorderExample> {
 
   RecorderExampleState({LocalFileSystem? localFileSystem }) {
     recorder = FlutterAudioRecorder4(
-        null,                                           // No need to avoid a null filepath
+        null,                                           // No need to avoid a null filepath; recorder won't break, but it won't initialize either
         audioFormat: AudioFormat.AAC,
         localFileSystem: localFileSystem,
         automaticallyRequestPermissions: true,          // This is true by default, just highlighting it so that callers can disable if desired
@@ -162,7 +162,7 @@ class RecorderExampleState extends State<RecorderExample> {
     if (playableRecordingFile == null) {//TODO - CHRIS - snackbar the user
       developer.log("OnPlayAudio filepath is null");
     } else {
-      await AudioPlayer().play(DeviceFileSource(playableRecordingFile.path));
+      await AudioPlayer().play(DeviceFileSource(playableRecordingFile.path));//TODO - CHRIS - for the initial migration, don't add this dependency to the library; then, for 2.0.0, add to library
     }
   }
 
@@ -258,7 +258,7 @@ class RecorderExampleState extends State<RecorderExample> {
       padding: buildEdgeInsets(),
       child: TextButton(
         onPressed: (){
-          switch(recorder.recording.recorderState) {//TODO - CHRIS - it's probably best to have each button and logic for when to show the button instead of a button like this
+          switch(recorder.recorderState) {//TODO - CHRIS - it's probably best to have each button and logic for when to show the button instead of a button like this
             case RecorderState.INITIALIZED: start();
             case RecorderState.RECORDING: pause();
             case RecorderState.PAUSED: resume();
@@ -267,7 +267,7 @@ class RecorderExampleState extends State<RecorderExample> {
           }
         },
         style: buildButtonStyle(),
-        child: Text(recorder.recording.recorderState.nexStateDisplayText, style: buildButtonTextStyle())
+        child: Text(recorder.recorderState.nexStateDisplayText, style: buildButtonTextStyle())
       )
     );
   }
@@ -280,12 +280,12 @@ class RecorderExampleState extends State<RecorderExample> {
 
   TextStyle buildButtonTextStyle() => const TextStyle(color: Colors.white);
 
-  Widget buildFilepathRow() => Text("Filepath:${recorder.recording.filepath}");
-  Widget buildExtensionRow() => Text("Extension:${recorder.recording.extension}");
-  Widget buildDurationRow() => Text("Duration:${recorder.recording.duration}");
-  Widget buildAudioFormatRow() => Text("Audio Format:${recorder.recording.audioFormat}");
-  Widget buildRecorderStateRow() => Text("Recorder State:${recorder.recording.recorderState}");
-  Widget buildPeakPowerRow() => Text("Peak Power:${recorder.recording.audioMetering.peakPower}");
-  Widget buildAveragePowerRow() => Text("Average Power:${recorder.recording.audioMetering.averagePower}");
-  Widget buildMeteringEnabledRow() => Text("Metering Enabled:${recorder.recording.audioMetering.meteringEnabled}");
+  Widget buildFilepathRow() => Text("Filepath:${recorder.filepath}");
+  Widget buildExtensionRow() => Text("Extension:${recorder.extension}");
+  Widget buildDurationRow() => Text("Duration:${recorder.duration}");
+  Widget buildAudioFormatRow() => Text("Audio Format:${recorder.audioFormat}");
+  Widget buildRecorderStateRow() => Text("Recorder State:${recorder.recorderState}");
+  Widget buildPeakPowerRow() => Text("Peak Power:${recorder.peakPower}");
+  Widget buildAveragePowerRow() => Text("Average Power:${recorder.averagePower}");
+  Widget buildMeteringEnabledRow() => Text("Metering Enabled:${recorder.meteringEnabled}");
 }
