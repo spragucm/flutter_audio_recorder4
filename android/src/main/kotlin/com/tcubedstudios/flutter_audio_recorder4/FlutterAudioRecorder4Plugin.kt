@@ -36,6 +36,7 @@ import kotlin.math.ln
 
 //TODO - CHRIS - use a state machine
 //https://github.com/Tinder/StateMachine -> supports kotlin and swift
+//Init, start, stop, etc all need to look at the state and return error if request is made in wrong state
 
 //Registrar is passed for Android plugin v1 compatibility
 class FlutterAudioRecorder4Plugin(
@@ -117,7 +118,6 @@ class FlutterAudioRecorder4Plugin(
 
   //region Recorder
   private fun handleInit(call: MethodCall, result: Result) {
-
     if (recorderState == UNSET || recorderState == INITIALIZED || recorderState == STOPPED) {
       resetRecorder()
 
@@ -126,10 +126,10 @@ class FlutterAudioRecorder4Plugin(
       sampleRateHz = call.argument<Any?>(SAMPLE_RATE_HZ)?.toString()?.toLong() ?: sampleRateHz
       bufferSizeBytes = AudioRecord.getMinBufferSize(sampleRateHz.toInt(), CHANNEL_IN_MONO, ENCODING_PCM_16BIT)
       recorderState = if (filepath.isNullOrBlank().not() && extension.isNullOrBlank().not()) INITIALIZED else UNSET
-      message = ""
+      message = "Recorder initialized"
       result.success(recording)
     } else {
-      result.error()
+      result.error("", "Recorder not initialized", "RecorderState is not UNSET, INITIALIZED, or STOPPED - i.e. currently recording")
     }
   }
 
@@ -141,7 +141,7 @@ class FlutterAudioRecorder4Plugin(
     try {
       fileOutputStream = FileOutputStream(filepathTemp)
     } catch (exception: FileNotFoundException) {
-      result.error("", "cannot find the file", null)
+      result.error("", "Recorder not started", "Cannot find the file at $filepathTemp")
       return
     }
 
@@ -178,10 +178,11 @@ class FlutterAudioRecorder4Plugin(
       recorder?.stop()
       recorder?.release()
 
+      var exception: IOException? = null
       try {
         fileOutputStream?.close()
-      } catch (exception: IOException) {
-        exception.printStackTrace()
+      } catch (e: IOException) {
+        exception = e
       }
 
       filepathTemp?.let { tempFileName ->
@@ -192,7 +193,11 @@ class FlutterAudioRecorder4Plugin(
 
       deleteTempFile()
 
-      result.success(recording)
+      if (exception == null) {
+        result.success(recording)
+      } else {
+        result.error("", "Recorder stopped with error", exception.message)
+      }
     }
   }
 
