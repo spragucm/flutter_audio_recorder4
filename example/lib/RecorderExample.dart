@@ -202,7 +202,10 @@ class RecorderExampleState extends State<RecorderExample> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: <Widget>[
-        buildNextRecorderStateButton(),
+
+        if (recorder.needsToBeInitialized)...[
+          buildInitializeButton()
+        ],
         if (recorder.isRecording)...[
           buildStopButton()
         ],
@@ -216,6 +219,14 @@ class RecorderExampleState extends State<RecorderExample> {
   EdgeInsets buildEdgeInsets() => const EdgeInsets.all(8.0);
 
   Widget buildVerticalSpacer() => const SizedBox(width: 8);
+
+  Widget buildInitializeButton() => TextButton(
+      onPressed: () async {
+        await recorder.initialized;
+      },
+      style: buildButtonStyle(),
+      child: Text("Stop", style: buildButtonTextStyle())
+  );
 
   Widget buildStopButton() => TextButton(
       onPressed: stop,
