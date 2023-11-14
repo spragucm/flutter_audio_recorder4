@@ -47,11 +47,12 @@ class FlutterAudioRecorder4Plugin(
   // If recorder is ever expected to operate in a background service, implement ServiceAware interface.
 
   companion object {
+    private const val DEFAULT_PEAK_POWER = -120.0
+    private const val DEFAULT_AVERAGE_POWER = -120.0
+    private const val DEFAULT_DATA_SIZE = 0L
+    private const val DEFAULT_BUFFER_SIZE = 1024
+    private const val DEFAULT_METERING_ENABLED = true
     private const val RECORDER_BPP: Byte = 16;
-    private const val DEFAULTS_PEAK_POWER = -120.0
-    private const val DEFAULTS_AVERAGE_POWER = -120.0
-    private const val DEFAULTS_DATA_SIZE = 0L
-    private const val DEFAULTS_BUFFER_SIZE = 1024
     private const val IOS_POWER_LEVEL_FACTOR = 0.25// iOS factor : to match iOS power level
   }
 
@@ -61,16 +62,17 @@ class FlutterAudioRecorder4Plugin(
   )
 
   private var sampleRate = 16000L//Khz
-  private var dataSize = DEFAULTS_DATA_SIZE
-  private var peakPower = DEFAULTS_PEAK_POWER
-  private var averagePower = DEFAULTS_AVERAGE_POWER
+  private var dataSize = DEFAULT_DATA_SIZE
+  private var peakPower = DEFAULT_PEAK_POWER
+  private var averagePower = DEFAULT_AVERAGE_POWER
   private var recorderState = UNSET
-  private var bufferSize = DEFAULTS_BUFFER_SIZE
+  private var bufferSize = DEFAULT_BUFFER_SIZE
   private var fileOutputStream: FileOutputStream? = null
   private var recordingThread: Thread? = null
   private var recorder: AudioRecord? = null
   private var filepath: String? = null
   private var extension: String? = null
+  private var meteringEnabled = DEFAULT_METERING_ENABLED
   private var message: String? = null
 
   private val filepathTemp: String?
@@ -153,8 +155,8 @@ class FlutterAudioRecorder4Plugin(
 
   private fun handlePause(call: MethodCall, result: Result) {
     recorderState = PAUSED
-    peakPower = DEFAULTS_PEAK_POWER
-    averagePower = DEFAULTS_AVERAGE_POWER
+    peakPower = DEFAULT_PEAK_POWER
+    averagePower = DEFAULT_AVERAGE_POWER
     recorder?.stop()
     recordingThread = null
     result.success(null)
@@ -207,9 +209,9 @@ class FlutterAudioRecorder4Plugin(
   }
 
   private fun resetRecorder() {
-    peakPower = DEFAULTS_PEAK_POWER
-    averagePower = DEFAULTS_AVERAGE_POWER
-    dataSize = DEFAULTS_DATA_SIZE
+    peakPower = DEFAULT_PEAK_POWER
+    averagePower = DEFAULT_AVERAGE_POWER
+    dataSize = DEFAULT_DATA_SIZE
   }
   //endregion
 
@@ -237,7 +239,7 @@ class FlutterAudioRecorder4Plugin(
     val escapeRecorderStateList = arrayOf(PAUSED, STOPPED, INITIALIZED, UNSET)
 
     averagePower = if (sampleVal == 0.toShort() || escapeRecorderStateList.contains(recorderState)) {
-      DEFAULTS_AVERAGE_POWER //to match iOS silent case
+      DEFAULT_AVERAGE_POWER //to match iOS silent case
     } else {
       20 * ln(abs(sampleVal.toDouble()) / 32768.0) * IOS_POWER_LEVEL_FACTOR
     }
