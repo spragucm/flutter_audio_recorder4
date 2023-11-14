@@ -227,7 +227,5 @@ class FlutterAudioRecorder4 {
     }
   }
 
-  void handleHasPermissions(bool hasPermissions) {
-    HAS_PERMISSIONS_CALLBACK?.call(hasPermissions);
-  }
+  void handleHasPermissions(bool hasPermissions) => HAS_PERMISSIONS_CALLBACK.call(hasPermissions);
 }
