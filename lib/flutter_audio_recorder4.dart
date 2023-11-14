@@ -101,7 +101,7 @@ class FlutterAudioRecorder4 {
     if (automaticallyRequestPermissions ?? false) hasPermissions;
   }
 
-  Future init(String? filepath, AudioFormat? audioFormat, int sampleRate) async {
+  Future<Recording> init(String? filepath, AudioFormat? audioFormat, int sampleRate) async {
 
     Map<String, String?> pathAndExtension = resolvePathAndExtension(filepath, audioFormat);
     recording.filepath = pathAndExtension[NamedArguments.FILEPATH];
@@ -157,9 +157,21 @@ class FlutterAudioRecorder4 {
     }
   }
 
-  Future<bool> invokeNativeInit() async {
+  bool _updateRecording(result, String? updatedMessage, String? notUpdatedMessage) {
+
+    recording = Map.from(result).toRecording() ?? recording;
+
+    //There is an exception that can be thrown though, so maybe add an error state to the recording, to indicate a problem and then just return the recording
+    //TODO - CHRIS - handle result.error as well as result.success
+    //TODO - CHRIS - return false when result.error was received
+    var updated = true;
+    recording.message = updated ? updatedMessage : notUpdatedMessage;
+    return updated;
+  }
+
+  Future<bool> _invokeNativeInit() async {//TODO - CHRIS - should this return recording with a message like the rest?
     try {
-      //TODO - CHRIS - is there any reason all recording values should not be passed to init?
+      //Only passing values to init that are settable by caller
       var result = await METHOD_CHANNEL.invokeMethod(
           NativeMethodCall.INIT.methodName,
           {
@@ -168,10 +180,7 @@ class FlutterAudioRecorder4 {
             NamedArguments.SAMPLE_RATE: recording.sampleRate
           }
       );
-
-      recording = Map.from(result).toRecording() ?? recording;
-
-      return true;
+      return _updateRecording(result, "Recorder initialized", "Recorder not initialized");
     } catch(exception) {
       return false;
     }
@@ -187,33 +196,60 @@ class FlutterAudioRecorder4 {
           NamedArguments.CHANNEL:channel                          //TODO - CHRIS - why pass channel when Android not using it?
         }
     );
-    recording = Map.from(result).toRecording() ?? recording;
+    _updateRecording(result, "Recording retrieved", "Recording not retrieved");
     return recording;
   }
 
   /// Request an initialized recording instance to be [started]
   /// Once executed, audio recording will start working and
   /// a file will be generated in user's file system
-  Future start() async {
-    //TODO - CHRIS - should recording be returned from start or should null? Currently it's null and I'm trying to avoid changing it
-    //There is an exception that can be thrown though, so maybe add an error state to the recording, to indicate a problem and then just return the recording
-    await METHOD_CHANNEL.invokeMethod(NativeMethodCall.START.methodName);
-    recording = await current() ?? recording;
+  Future<Recording> start() async {
+
+    //TODO - CHRIS - this ticker should be in recorder and caller should be able to set a callback if they're interested
+    /*const tick = Duration(milliseconds: 50);
+    Timer.periodic(tick, (Timer timer) async {
+      if (recorder.isStopped) {
+        timer.cancel();
+      }
+
+      await updateRecording();
+    });
+
+
+    //TODO - CHRIS - caller should not need to do this; it should be internal to the recorder and then a callback can be triggered for when the recording is updated
+  Future updateRecording() async {
+    await recorder.current(channel: FlutterAudioRecorder4.DEFAULT_CHANNEL);
+    triggerStateRefresh();
+  }
+
+    */
+
+    var result = await METHOD_CHANNEL.invokeMethod(NativeMethodCall.START.methodName);
+    _updateRecording(result, "Recording started", "Recording not started");
+    return recording;
   }
 
   /// Request currently [Recording] recording to be [Paused]
   /// Note: Use [current] to get latest state of recording after [pause]
-  Future pause() async => METHOD_CHANNEL.invokeMethod(NativeMethodCall.PAUSE.methodName);
+  Future<Recording> pause() async {
+    var result = await METHOD_CHANNEL.invokeMethod(NativeMethodCall.PAUSE.methodName);
+    _updateRecording(result, "Recording paused", "Recording not paused");
+    return recording;
+  }
 
   /// Request currently [Paused] recording to continue
-  Future resume() async => METHOD_CHANNEL.invokeMethod(NativeMethodCall.RESUME.methodName);
+  Future<Recording> resume() async {
+    var result = METHOD_CHANNEL.invokeMethod(NativeMethodCall.RESUME.methodName);
+    _updateRecording(result, "Recording resumed", "Recording not resumed");
+    return recording;
+  }
 
   /// Request the recording to stop
   /// Once its stopped, the recording file will be finalized and will not start, resume, pause anymore.
   /// Stop may be called as many times as desired, but the recording will only be stopped once.
   Future<Recording> stop() async {
     var result = await METHOD_CHANNEL.invokeMethod(NativeMethodCall.STOP.methodName);
-    recording = Map.from(result).toRecording() ?? recording;//result will be null if recording is already stopped, so the current recording will be returned
+    _updateRecording(result, "Recording stopped", "Recording not stopped");
     return recording;
   }
 
