@@ -70,10 +70,10 @@ class FlutterAudioRecorder4 {
   Future<int> get recordingFileSizeInBytes => _localFileSystem.fileSizeInBytes(recording);
 
   late Future initialized;
-
-  //TODO - CHRIS - when recorder supports multiple files, select the most recent file
-  bool get needsToBeInitialized => recording.needsToBeInitialized;
-  bool get isRecording => recording.isRecording;
+  VoidCallback? onInitializedCallback;
+  VoidCallback? onRecordingCallback;
+  VoidCallback? onPausedCallback;
+  VoidCallback? onStoppedCallback;
 
   // .wav <---> AudioFormat.WAV
   // .mp4 .m4a .aac <---> AudioFormat.AAC
@@ -85,7 +85,11 @@ class FlutterAudioRecorder4 {
         int sampleRate = Recording.DEFAULT_SAMPLE_RATE_KHZ,
         LocalFileSystem? localFileSystem,
         bool? automaticallyRequestPermissions = true,
-        Function(bool)? hasPermissionsCallback
+        Function(bool)? hasPermissionsCallback,
+        this.onInitializedCallback,
+        this.onRecordingCallback,
+        this.onPausedCallback,
+        this.onStoppedCallback
       }
   ) {
     _localFileSystem = localFileSystem ?? const LocalFileSystem();
