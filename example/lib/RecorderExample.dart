@@ -94,14 +94,10 @@ class RecorderExampleState extends State<RecorderExample> {
   }// Recorder should now be INITIALIZED if everything is working*/
 
   void start() async {
-    try {
-      await recorder.start();
+    var initialized = await recorder.initialized;
 
     showSnackBarMessage(await recorder.start());
-
-    } catch(exception) {
-      developer.log("RecorderExample start exception:$exception");
-    }
+    triggerStateRefresh();
   }
 
   void resume() async {
