@@ -112,27 +112,21 @@ class FlutterAudioRecorder4Plugin(
 
   //region Recorder
   private fun handleInit(call: MethodCall, result: Result) {
-    resetRecorder()
+//    TODO - CHRIS - need to handle the business logic for determining when the states can be changed
+//    possibly return result.error when cannot init, with message like "already init and recording, must stop recording first"
+    if (recorderState == UNSET || recorderState == INITIALIZED || recorderState == STOPPED) {
+      resetRecorder()
 
       filepath = call.argument<Any?>(FILEPATH)?.toString()
-    extension = call.argument<Any?>(EXTENSION)?.toString()
-    sampleRate = call.argument<Any?>(SAMPLE_RATE)?.toString()?.toLong() ?: 0L
-    bufferSize = AudioRecord.getMinBufferSize(sampleRate.toInt(), CHANNEL_IN_MONO, ENCODING_PCM_16BIT)
-    recorderState = if (filePath.isNullOrBlank().not() && extension.isNullOrBlank().not()) INITIALIZED else UNSET
-
-    val initResult = mapOf<String, Any?>(
-            FILEPATH to filePath,
-            EXTENSION to extension,
-            DURATION to 0,
-            AUDIO_FORMAT to extension?.toAudioFormat()?.name,
-            RECORDER_STATE to recorderState.value,
-            METERING_ENABLED to true,
-            PEAK_POWER to peakPower,
-            AVERAGE_POWER to averagePower,
-            SAMPLE_RATE to sampleRate
-    )
-
-    result.success(initResult)
+      extension = call.argument<Any?>(EXTENSION)?.toString()
+      sampleRate = call.argument<Any?>(SAMPLE_RATE)?.toString()?.toLong() ?: sampleRate
+      bufferSize = AudioRecord.getMinBufferSize(sampleRate.toInt(), CHANNEL_IN_MONO, ENCODING_PCM_16BIT)
+      recorderState = if (filepath.isNullOrBlank().not() && extension.isNullOrBlank().not()) INITIALIZED else UNSET
+      message = ""
+      result.success(recording)
+    } else {
+      result.error()
+    }
   }
 
   private fun handleCurrent(result: Result) = result.success(recording)
