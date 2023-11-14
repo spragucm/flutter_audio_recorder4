@@ -99,16 +99,6 @@ class RecorderExampleState extends State<RecorderExample> {
 
     showSnackBarMessage(await recorder.start());
 
-      //TODO - CHRIS - this ticker should be in recorder and caller should be able to set a callback if they're interested
-      const tick = Duration(milliseconds: 50);
-      Timer.periodic(tick, (Timer timer) async {
-        if (recorder.isStopped) {
-          timer.cancel();
-        }
-
-        await updateRecording();
-      });
-
     } catch(exception) {
       developer.log("RecorderExample start exception:$exception");
     }
