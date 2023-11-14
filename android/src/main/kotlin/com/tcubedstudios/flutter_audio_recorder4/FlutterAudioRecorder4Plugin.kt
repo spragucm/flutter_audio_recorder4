@@ -46,6 +46,7 @@ class FlutterAudioRecorder4Plugin(
   //TODO - CHRIS
   // If recorder is ever expected to operate in a background service, implement ServiceAware interface.
 
+  //region Defaults
   companion object {
     private const val DEFAULT_SAMPLE_RATE_KHZ = 16000L
     private const val DEFAULT_PEAK_POWER = -120.0
@@ -56,7 +57,9 @@ class FlutterAudioRecorder4Plugin(
     private const val RECORDER_BPP: Byte = 16;
     private const val IOS_POWER_LEVEL_FACTOR = 0.25// iOS factor : to match iOS power level
   }
+  //endregion
 
+  //region Fields
   override val permissionsToRequest = listOf(
     PermissionToRequest(RECORD_AUDIO),
     PermissionToRequest(WRITE_EXTERNAL_STORAGE, maxSdk = VERSION_CODES.LOLLIPOP_MR1)//WR_EX_ST was removed in M, so last allowed version is LP_MR1
@@ -94,6 +97,7 @@ class FlutterAudioRecorder4Plugin(
       SAMPLE_RATE to sampleRateKhz,
       MESSAGE to message
     )
+  //endregion
 
   //region Handle method calls from flutter
   override fun onMethodCall(call: MethodCall, result: Result) {
