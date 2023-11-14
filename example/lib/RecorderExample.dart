@@ -56,11 +56,11 @@ class RecorderExampleState extends State<RecorderExample> {
   void init() async {
     // Waiting until init() to determine path because ctor isn't async
     io.Directory? appDocDirectory = await getAppDocDirectory();
-    if (appDocDirectory == null) throw const FileSystemException("Could not get app doc directory");
-
-    // Can add extensions like ".mp4 ".wav" ".m4a" ".aac"
-    recorder.recording.filepath = '${appDocDirectory.path}/flutter_audio_recorder_${DateTime.now().millisecondsSinceEpoch}';
-
+    if (appDocDirectory != null) {
+      recorder.filepath = '${appDocDirectory.path}/flutter_audio_recorder_${DateTime.now().millisecondsSinceEpoch}';
+    } else {
+      showSnackBarMessage("Could not get app doc directory");
+    }
     updatePlatformVersion();
   }
 
@@ -72,20 +72,16 @@ class RecorderExampleState extends State<RecorderExample> {
   }
 
   Future<void> hasPermissionsCallback(hasPermissions) async {
-
-    developer.log("HasPermissionsCallback hasPermissions:$hasPermissions RecorderState:${recorder.recording.recorderState}");
+    var message = hasPermissions ? "All permissions accepted." : "You mus accept all permissions";
+    showSnackBarMessage("$message. RecorderState:${recorder.recorderState}");
 
     setState(() {
       this.hasPermissions = hasPermissions;
     });
-
-    if (!hasPermissions) {
-      showDoesNotHavePermissionsSnackBar();
-    }
   }
 
-  showDoesNotHavePermissionsSnackBar() => ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text("You must accept all permissions"))
+  showSnackBarMessage(String message) => ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(message))
   );
 
   //TODO - CHRIS - there is no reason to wait to init the recorder until permissions are accepted
@@ -101,7 +97,7 @@ class RecorderExampleState extends State<RecorderExample> {
     try {
       await recorder.start();
 
-      //TODO - CHRIS - handle start errors
+    showSnackBarMessage(await recorder.start());
 
       //TODO - CHRIS - this ticker should be in recorder and caller should be able to set a callback if they're interested
       const tick = Duration(milliseconds: 50);
@@ -119,12 +115,12 @@ class RecorderExampleState extends State<RecorderExample> {
   }
 
   void resume() async {
-    await recorder.resume();
+    showSnackBarMessage(await recorder.resume());
     triggerStateRefresh();
   }
 
   void pause() async {
-    await recorder.pause();
+    showSnackBarMessage(await recorder.pause());
     triggerStateRefresh();
   }
 
