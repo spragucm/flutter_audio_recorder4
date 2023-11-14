@@ -143,12 +143,6 @@ class RecorderExampleState extends State<RecorderExample> {
     triggerStateRefresh();
   }
 
-  //TODO - CHRIS - caller should not need to do this; it should be internal to the recorder and then a callback can be triggered for when the recording is updated
-  Future updateRecording() async {
-    await recorder.current(channel: FlutterAudioRecorder4.DEFAULT_CHANNEL);
-    triggerStateRefresh();
-  }
-
   //TODO - CHRIS - might need to change fields for real
   void triggerStateRefresh() => setState((){});
 
