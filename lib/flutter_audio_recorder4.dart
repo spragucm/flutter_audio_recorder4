@@ -1,49 +1,29 @@
+import 'package:flutter_audio_recorder4/permissions_requester.dart';
 import 'package:flutter_audio_recorder4/recorder_state.dart';
 import 'package:flutter_audio_recorder4/recording.dart';
 import 'audio_metering.dart';
-import 'flutter_method_call.dart';
+import 'method_channel_handler.dart';
 import 'named_arguments.dart';
 import 'audio_extension.dart';
 import 'audio_format.dart';
-import 'flutter_audio_recorder4_platform_interface.dart';
 import 'dart:async';
 import 'package:file/local.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as path_library;
 import 'native_method_call.dart';
 import 'package:file/file.dart';
-import 'dart:developer' as developer;
 
-class FlutterAudioRecorder4 {
+class FlutterAudioRecorder4 extends PermissionsRequester {
 
-  static const String METHOD_CHANNEL_NAME = "flutter_audio_recorder4";
-  static const MethodChannel METHOD_CHANNEL = MethodChannel(METHOD_CHANNEL_NAME);
-  static const int DEFAULT_CHANNEL = 0;
+  static const String METHOD_CHANNEL_NAME = "com.tcubedstudios.flutter_audio_recorder4";
 
-  static LocalFileSystem LOCAL_FILE_SYSTEM = const LocalFileSystem();
-  static const String LOG_NAME = "com.tcubedstudios.flutter_audio_recorder4";
+  static const String LOG_NAME = METHOD_CHANNEL_NAME;
 
-  //This is static because hasPermissions and revokePermissions are static - the prior API is driving this
-  static bool ALL_PERMISSIONS_GRANTED = false;
-  static Function(bool hasPermissions)? _hasPermissionsExternalCallback;
-  static Function(bool hasPermissions) HAS_PERMISSIONS_CALLBACK = (bool hasPermissions){
-      ALL_PERMISSIONS_GRANTED = hasPermissions;
-      _hasPermissionsExternalCallback?.call(ALL_PERMISSIONS_GRANTED);
-  };
-
+  //TODO - CHRIS - required for backwards compatibility, but I really don't like the statics
   /// Returns the result of record permission
   /// if not determined(app first launch),
   /// this will ask user to whether grant the permission
-  static Future<bool?> get hasPermissions async {
-    var allPermissionsGranted = await METHOD_CHANNEL.invokeMethod(NativeMethodCall.HAS_PERMISSIONS.methodName);
-    HAS_PERMISSIONS_CALLBACK(allPermissionsGranted);
-    return ALL_PERMISSIONS_GRANTED;
-  }
-
-  // This is static because hasPermissions is static - the prior API is driving this
-  static Future get revokePermissions async {
-    return await METHOD_CHANNEL.invokeMethod(NativeMethodCall.REVOKE_PERMISSIONS.methodName);
-  }
+  static Future<bool?> get hasPermissions async => PermissionsRequester.hasPermissions;
 
   late LocalFileSystem _localFileSystem;
 
@@ -91,10 +71,8 @@ class FlutterAudioRecorder4 {
         this.onPausedCallback,
         this.onStoppedCallback
       }
-  ) {
+  ) : super("flutter_audio_recorder4", hasPermissionsCallback: hasPermissionsCallback) {
     _localFileSystem = localFileSystem ?? const LocalFileSystem();
-    _hasPermissionsExternalCallback = hasPermissionsCallback ?? HAS_PERMISSIONS_CALLBACK;
-    METHOD_CHANNEL.setMethodCallHandler(methodHandler);
 
     initialized = init(filepath, audioFormat, sampleRate);
 
@@ -155,7 +133,7 @@ class FlutterAudioRecorder4 {
       return "Filepath is null.$generalMessage";
     }
 
-    File file = LOCAL_FILE_SYSTEM.file(filepath);
+    File file = _localFileSystem.file(filepath);
     if (await file.exists()) {
       return "A file already exists at the path :$filepath.$generalMessage";
     } else if (!await file.parent.exists()) {
@@ -180,7 +158,7 @@ class FlutterAudioRecorder4 {
   Future<bool> _invokeNativeInit() async {//TODO - CHRIS - should this return recording with a message like the rest?
     try {
       //Only passing values to init that are settable by caller
-      var result = await METHOD_CHANNEL.invokeMethod(
+      var result = await MethodChannelHandler.METHOD_CHANNEL.invokeMethod(
           NativeMethodCall.INIT.methodName,
           {
             NamedArguments.FILEPATH: recording.filepath,
@@ -197,11 +175,11 @@ class FlutterAudioRecorder4 {
   /// Ask for current status of recording
   /// Returns the result of current recording status
   /// Metering level, Duration, Status...
-  Future<Recording?> current({int channel = DEFAULT_CHANNEL}) async {
-    var result = await METHOD_CHANNEL.invokeMethod(
+  Future<Recording?> current({int? channel}) async {
+    var result = await MethodChannelHandler.METHOD_CHANNEL.invokeMethod(
         NativeMethodCall.CURRENT.methodName,
         {
-          NamedArguments.CHANNEL:channel                          //TODO - CHRIS - why pass channel when Android not using it?
+          NamedArguments.CHANNEL: channel ?? MethodChannelHandler.DEFAULT_CHANNEL //TODO - CHRIS - why pass channel when Android not using it?
         }
     );
     _updateRecording(result, "Recording retrieved", "Recording not retrieved");
@@ -232,7 +210,7 @@ class FlutterAudioRecorder4 {
 
     */
 
-    var result = await METHOD_CHANNEL.invokeMethod(NativeMethodCall.START.methodName);
+    var result = await MethodChannelHandler.METHOD_CHANNEL.invokeMethod(NativeMethodCall.START.methodName);
     _updateRecording(result, "Recording started", "Recording not started");
     return recording;
   }
@@ -240,14 +218,14 @@ class FlutterAudioRecorder4 {
   /// Request currently [Recording] recording to be [Paused]
   /// Note: Use [current] to get latest state of recording after [pause]
   Future<Recording> pause() async {
-    var result = await METHOD_CHANNEL.invokeMethod(NativeMethodCall.PAUSE.methodName);
+    var result = await MethodChannelHandler.METHOD_CHANNEL.invokeMethod(NativeMethodCall.PAUSE.methodName);
     _updateRecording(result, "Recording paused", "Recording not paused");
     return recording;
   }
 
   /// Request currently [Paused] recording to continue
   Future<Recording> resume() async {
-    var result = METHOD_CHANNEL.invokeMethod(NativeMethodCall.RESUME.methodName);
+    var result = MethodChannelHandler.METHOD_CHANNEL.invokeMethod(NativeMethodCall.RESUME.methodName);
     _updateRecording(result, "Recording resumed", "Recording not resumed");
     return recording;
   }
@@ -256,20 +234,8 @@ class FlutterAudioRecorder4 {
   /// Once its stopped, the recording file will be finalized and will not start, resume, pause anymore.
   /// Stop may be called as many times as desired, but the recording will only be stopped once.
   Future<Recording> stop() async {
-    var result = await METHOD_CHANNEL.invokeMethod(NativeMethodCall.STOP.methodName);
+    var result = await MethodChannelHandler.METHOD_CHANNEL.invokeMethod(NativeMethodCall.STOP.methodName);
     _updateRecording(result, "Recording stopped", "Recording not stopped");
     return recording;
   }
-
-  Future<String> getPlatformVersion() async => await FlutterAudioRecorder4Platform.instance.getPlatformVersion() ?? "Unknown platform version";
-  
-  Future<void> methodHandler(MethodCall call) async {
-    if (call.method == FlutterMethodCall.HAS_PERMISSIONS.methodName) {
-      handleHasPermissions(call.arguments);
-    } else {
-      developer.log("Unhandled method call:${call.method}");
-    }
-  }
-
-  void handleHasPermissions(bool hasPermissions) => HAS_PERMISSIONS_CALLBACK.call(hasPermissions);
 }
