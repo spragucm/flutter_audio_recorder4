@@ -1,6 +1,7 @@
 import 'package:flutter_audio_recorder4/permissions_requester.dart';
 import 'package:flutter_audio_recorder4/recorder_state.dart';
 import 'package:flutter_audio_recorder4/recording.dart';
+import 'package:flutter_audio_recorder4/utils.dart';
 import 'audio_metering.dart';
 import 'method_channel_handler.dart';
 import 'named_arguments.dart';
@@ -117,30 +118,13 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
     }
 
     var resolvedFilepath = filepath == null ? filepath : path_library.withoutExtension(filepath) + extension;
-    var message = await validateFilepath(resolvedFilepath);
+    var message = await _localFileSystem.validateFilepath(resolvedFilepath);
 
     return {
       NamedArguments.FILEPATH : resolvedFilepath,
       NamedArguments.EXTENSION : extension,
       NamedArguments.MESSAGE : message
     };
-  }
-
-  Future<String> validateFilepath(String? filepath) async {
-
-    var generalMessage = "Recorder not initialized.";
-    if (filepath == null) {
-      return "Filepath is null.$generalMessage";
-    }
-
-    File file = _localFileSystem.file(filepath);
-    if (await file.exists()) {
-      return "A file already exists at the path :$filepath.$generalMessage";
-    } else if (!await file.parent.exists()) {
-      return "The specified parent directory does not exist.$generalMessage";
-    }
-
-    return "";
   }
 
   bool _updateRecording(result, String? updatedMessage, String? notUpdatedMessage) {
