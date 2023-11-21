@@ -204,11 +204,19 @@ class RecorderExampleState extends State<RecorderExample> {
         if (recorder.needsToBeInitialized)...[
           buildInitializeButton()
         ],
+        if (recorder.isInitialized) ... [
+          buildStartButton()
+        ],
         if (recorder.isRecording)...[
+          buildPauseButton(),
+          buildStopButton()
+        ],
+        if (recorder.isPaused)...[
+          buildResumeButton(),
           buildStopButton()
         ],
         if (recorder.playableRecordingFile != null) ... [
-          buildPlayButton()
+          buildPlayAudioButton()
         ]
       ]
     );
@@ -237,6 +245,24 @@ class RecorderExampleState extends State<RecorderExample> {
       child: Text("Initialize", style: buildButtonTextStyle())
   );
 
+  Widget buildStartButton() => TextButton(
+      onPressed: start,
+      style: buildButtonStyle(),
+      child: Text("Record", style: buildButtonTextStyle())
+  );
+
+  Widget buildPauseButton() => TextButton(
+      onPressed: pause,
+      style: buildButtonStyle(),
+      child: Text("Pause", style: buildButtonTextStyle())
+  );
+
+  Widget buildResumeButton() => TextButton(
+      onPressed: resume,
+      style: buildButtonStyle(),
+      child: Text("Resume Recording", style: buildButtonTextStyle())
+  );
+
   Widget buildStopButton() => TextButton(
       onPressed: stop,
       style: buildButtonStyle(),
@@ -263,7 +289,7 @@ class RecorderExampleState extends State<RecorderExample> {
       child: Text(isRevoked ? "Revoked Permissions. Must restart app." : "Revoke Permissions", style: buildButtonTextStyle())
   );
 
-  Widget buildPlayButton() => TextButton(
+  Widget buildPlayAudioButton() => TextButton(
     onPressed: onPlayAudio,
     style: buildButtonStyle(),
     child: Text("Play", style: buildButtonTextStyle())

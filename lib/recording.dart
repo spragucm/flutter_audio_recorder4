@@ -30,8 +30,9 @@ class Recording {
   );
 
   bool get needsToBeInitialized => recorderState == RecorderState.UNSET || recorderState == RecorderState.STOPPED;
-  bool get isInitialized => !needsToBeInitialized;
-  bool get isRecording => recorderState == RecorderState.PAUSED || recorderState == RecorderState.RECORDING;
+  bool get isInitialized => recorderState == RecorderState.INITIALIZED;
+  bool get isRecording => recorderState == RecorderState.RECORDING;
+  bool get isPaused => recorderState == RecorderState.PAUSED;
   bool get isStopped => recorderState == RecorderState.STOPPED;
   bool get isPlayable => isStopped && duration.inMilliseconds > 0;
 }

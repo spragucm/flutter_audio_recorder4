@@ -41,7 +41,9 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
   double get peakPower => audioMetering.peakPower;
   bool get meteringEnabled => audioMetering.meteringEnabled;
   bool get needsToBeInitialized => recording.needsToBeInitialized;
+  bool get isInitialized => recording.isInitialized;
   bool get isRecording => recording.isRecording;
+  bool get isPaused => recording.isPaused;
   bool get isStopped => recording.isStopped;
   bool get isPlayable => recording.isPlayable;
   File? get recordingFile => _localFileSystem.toFile(recording);
