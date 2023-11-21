@@ -39,7 +39,8 @@ class RecorderExampleState extends State<RecorderExample> {
         audioFormat: AudioFormat.AAC,
         localFileSystem: localFileSystem,
         automaticallyRequestPermissions: true,          // This is true by default, just highlighting it so that callers can disable if desired
-        hasPermissionsCallback: hasPermissionsCallback  // If a callback was passed into CTOR, it will be triggered with the result, so no need to wait
+        hasPermissionsCallback: _hasPermissionsCallback,  // If a callback was passed into CTOR, it will be triggered with the result, so no need to wait
+        onRecordingUpdatedCallback: _onRecordingUpdatedCallback
     );
   }
 
@@ -59,33 +60,6 @@ class RecorderExampleState extends State<RecorderExample> {
     }
     updatePlatformVersion();
   }
-
-  //TODO - CHRIS - not sure why platform version is in the example
-  Future<void> updatePlatformVersion() async {
-    var platformVersion = await recorder.getPlatformVersion();
-    setState((){
-      this.platformVersion = platformVersion;
-    });
-  }
-
-  Future<void> hasPermissionsCallback(hasPermissions) async {
-    var message = hasPermissions ? "All permissions accepted." : "You mus accept all permissions";
-    showSnackBarMessage("$message. RecorderState:${recorder.recorderState}");
-
-    setState(() {
-      this.hasPermissions = hasPermissions;
-    });
-  }
-
-  showSnackBarMessageIfNotNull(String? message) {
-    if (message != null) {
-      showSnackBarMessage(message);
-    }
-  }
-
-  showSnackBarMessage(String message) => ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text(message))
-  );
 
   void start() async {
     var initializedResult = await recorder.initialized;
@@ -140,6 +114,37 @@ class RecorderExampleState extends State<RecorderExample> {
       await AudioPlayer().play(DeviceFileSource(playableRecordingFile.path));//TODO - CHRIS - for the initial migration, don't add this dependency to the library; then, for 2.0.0, add to library
     }
   }
+
+  //TODO - CHRIS - not sure why platform version is in the example
+  Future<void> updatePlatformVersion() async {
+    var platformVersion = await recorder.getPlatformVersion();
+    setState((){
+      this.platformVersion = platformVersion;
+    });
+  }
+
+  _hasPermissionsCallback(hasPermissions) async {
+    var message = hasPermissions ? "All permissions accepted." : "You mus accept all permissions";
+    showSnackBarMessage("$message. RecorderState:${recorder.recorderState}");
+
+    setState(() {
+      this.hasPermissions = hasPermissions;
+    });
+  }
+
+  _onRecordingUpdatedCallback(Recording recording) {
+    triggerStateRefresh();
+  }
+
+  showSnackBarMessageIfNotNull(String? message) {
+    if (message != null) {
+      showSnackBarMessage(message);
+    }
+  }
+
+  showSnackBarMessage(String message) => ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message))
+  );
 
   @override
   Widget build(BuildContext context) {
