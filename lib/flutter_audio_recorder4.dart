@@ -17,7 +17,6 @@ import 'package:file/file.dart';
 class FlutterAudioRecorder4 extends PermissionsRequester {
 
   static const String METHOD_CHANNEL_NAME = "com.tcubedstudios.flutter_audio_recorder4";
-
   static const String LOG_NAME = METHOD_CHANNEL_NAME;
 
   //TODO - CHRIS - required for backwards compatibility, but I really don't like the statics
@@ -25,6 +24,7 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
   /// if not determined(app first launch),
   /// this will ask user to whether grant the permission
   static Future<bool?> get hasPermissions async => PermissionsRequester.hasPermissions;
+  static Future get revokePermissions async => PermissionsRequester.revokePermissions;
 
   late LocalFileSystem _localFileSystem;
 
@@ -82,7 +82,7 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
 
   Future<Recording> init(String? filepath, AudioFormat? audioFormat, int sampleRateHz) async {
 
-    Map<String, String?> pathAndExtension = await resolvePathAndExtension(filepath, audioFormat);
+    Map<String, String?> pathAndExtension = await _resolvePathAndExtension(filepath, audioFormat);
     recording.filepath = pathAndExtension[NamedArguments.FILEPATH];
     recording.extension = pathAndExtension[NamedArguments.EXTENSION] ?? Recording.DEFAULT_EXTENSION;
     recording.audioFormat = recording.extension.toAudioFormat() ?? Recording.DEFAULT_AUDIO_FORMAT;
@@ -96,7 +96,7 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
     return recording;
   }
 
-  Future<Map<String, String?>> resolvePathAndExtension(String? filepath, AudioFormat? audioFormat) async {
+  Future<Map<String, String?>> _resolvePathAndExtension(String? filepath, AudioFormat? audioFormat) async {
 
     String? pathExtension = filepath == null ? null : path_library.extension(filepath);
     AudioFormat? extensionAudioFormat = pathExtension?.toAudioFormat();
