@@ -52,7 +52,11 @@ class RecorderExampleState extends State<RecorderExample> {
     init();
   }
 
-  void init() async {
+  void init() {
+    updatePlatformVersion();
+  }
+
+  void _initWithFilepath() async {
     // Waiting until init() to determine path because ctor isn't async
     io.Directory? appDocDirectory = await getAppDocDirectory();
     if (appDocDirectory != null) {
@@ -61,11 +65,10 @@ class RecorderExampleState extends State<RecorderExample> {
       var filepath = '${appDocDirectory.path}/flutter_audio_recorder_${DateTime.now().millisecondsSinceEpoch}';
       var initializedResult = await recorder.updateFilePathAndInit(filepath); // It's safe to call init again. Only filepath changed though, so prefer updateFilePathAndInit
       showSnackBarMessageIfNotNull(initializedResult.message);               // Caller would need to manually call triggerStateRefresh or pass onInitializedCallback in order
-                                                                             // to see the new file path in the UI. We're opting for the callback in the ctor
+      // to see the new file path in the UI. We're opting for the callback in the ctor
     } else {
       showSnackBarMessage("Could not get app doc directory");
     }
-    updatePlatformVersion();
   }
 
   void start() async {
@@ -217,10 +220,21 @@ class RecorderExampleState extends State<RecorderExample> {
 
   Widget buildInitializeButton() => TextButton(
       onPressed: () async {
-        await recorder.initialized;
+        // Waiting until init() to determine path because ctor isn't async
+        io.Directory? appDocDirectory = await getAppDocDirectory();
+        if (appDocDirectory != null) {
+          // If the filepath is initially null, and then later set, the caller needs to manually query the recording again
+          // or set onRecordingUpdatedCallback. The later is used in this example as it's the preferred approach
+          var filepath = '${appDocDirectory.path}/flutter_audio_recorder_${DateTime.now().millisecondsSinceEpoch}';
+          var initializedResult = await recorder.updateFilePathAndInit(filepath); // It's safe to call init again. Only filepath changed though, so prefer updateFilePathAndInit
+          showSnackBarMessageIfNotNull(initializedResult.message);               // Caller would need to manually call triggerStateRefresh or pass onInitializedCallback in order
+          // to see the new file path in the UI. We're opting for the callback in the ctor
+        } else {
+          showSnackBarMessage("Could not get app doc directory");
+        }
       },
       style: buildButtonStyle(),
-      child: Text("Stop", style: buildButtonTextStyle())
+      child: Text("Initialize", style: buildButtonTextStyle())
   );
 
   Widget buildStopButton() => TextButton(
