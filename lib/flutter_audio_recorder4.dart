@@ -32,7 +32,6 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
   //will likely need to be methods with recording name passed as arg
   Recording recording = Recording();
   String? get filepath => recording.filepath;
-  set filepath(String? path) => { recording.filepath = path };
   String get extension => recording.extension;
   Duration get duration => recording.duration;
   AudioFormat get audioFormat => recording.audioFormat;
@@ -96,11 +95,7 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
     recording.audioFormat = recording.extension.toAudioFormat() ?? Recording.DEFAULT_AUDIO_FORMAT;
     recording.sampleRateHz = sampleRateHz;
 
-    if(await _invokeNativeInit()) {
-      onInitializedCallback?.call(recording);
-    } else {
-      //TODO - CHRIS - handle when init fails and notify callback
-    }
+    await _invokeNativeInit();
 
     return recording;
   }
@@ -159,9 +154,28 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
             NamedArguments.SAMPLE_RATE_HZ: recording.sampleRateHz
           }
       );
-      return _updateRecording(result, "Recorder initialized", "Recorder not initialized");
+
+      var updatedRecording = _updateRecording(result, "Recorder initialized", "Recorder not initialized");
+
+      if(updatedRecording) {
+        onInitializedCallback?.call(recording);
+      } else {
+        //TODO - CHRIS - handle when init fails and notify callback
+      }
+
+      return updatedRecording;
     } catch(exception) {
       return false;
+    }
+  }
+
+  bool setFilepath(String? path) {
+    if (recording.isInitialized) {
+      return false;
+    } else {
+      recording.filepath = path;
+      init(filepath, audioFormat, sampleRateHz);
+      return true;
     }
   }
 
@@ -176,6 +190,9 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
         }
     );
     _updateRecording(result, "Recording retrieved", "Recording not retrieved");
+
+    onRecordingUpdatedCallback?.call(recording);
+
     return recording;
   }
 
