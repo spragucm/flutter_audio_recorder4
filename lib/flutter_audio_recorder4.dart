@@ -49,12 +49,17 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
   File? get recordingFile => _localFileSystem.toFile(recording);
   File? get playableRecordingFile => _localFileSystem.toFile(recording, onlyIfPlayable: true);
   Future<int> get recordingFileSizeInBytes => _localFileSystem.fileSizeInBytes(recording);
+  int recordingUpdateIntervalMillis;
 
   late Future initialized;
-  VoidCallback? onInitializedCallback;
-  VoidCallback? onRecordingCallback;
-  VoidCallback? onPausedCallback;
-  VoidCallback? onStoppedCallback;
+  Function(Recording recording)? onInitializedCallback;
+  Function(Recording recording)? onStartedCallback;//TODO - CHRIS - this should probably be onRecordingCallback
+  Function(Recording recording)? onRecordingUpdatedCallback;
+  Function(Recording recording)? onPausedCallback;
+  Function(Recording recording)? onResumeCallback;
+  Function(Recording recording)? onStoppedCallback;
+
+  Timer? _timer;
 
   // .wav <---> AudioFormat.WAV
   // .mp4 .m4a .aac <---> AudioFormat.AAC
@@ -66,10 +71,13 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
         int sampleRate = Recording.DEFAULT_SAMPLE_RATE_HZ,//TODO - CHRIS - rename sampleRate to sampleRateHz; this will be a breaking change though
         LocalFileSystem? localFileSystem,
         bool? automaticallyRequestPermissions = true,
+        this.recordingUpdateIntervalMillis = 50,
         Function(bool)? hasPermissionsCallback,
         this.onInitializedCallback,
-        this.onRecordingCallback,
+        this.onStartedCallback,
+        this.onRecordingUpdatedCallback,
         this.onPausedCallback,
+        this.onResumeCallback,
         this.onStoppedCallback
       }
   ) : super("flutter_audio_recorder4", hasPermissionsCallback: hasPermissionsCallback) {
@@ -88,9 +96,10 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
     recording.audioFormat = recording.extension.toAudioFormat() ?? Recording.DEFAULT_AUDIO_FORMAT;
     recording.sampleRateHz = sampleRateHz;
 
-    //TODO - CHRIS - handle when init fails and notify callback
     if(await _invokeNativeInit()) {
-      onInitializedCallback?.call();
+      onInitializedCallback?.call(recording);
+    } else {
+      //TODO - CHRIS - handle when init fails and notify callback
     }
 
     return recording;
@@ -174,29 +183,34 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
   /// Once executed, audio recording will start working and
   /// a file will be generated in user's file system
   Future<Recording> start() async {
-
-    //TODO - CHRIS - this ticker should be in recorder and caller should be able to set a callback if they're interested
-    /*const tick = Duration(milliseconds: 50);
-    Timer.periodic(tick, (Timer timer) async {
-      if (recorder.isStopped) {
-        timer.cancel();
-      }
-
-      await updateRecording();
-    });
-
-
-    //TODO - CHRIS - caller should not need to do this; it should be internal to the recorder and then a callback can be triggered for when the recording is updated
-  Future updateRecording() async {
-    await recorder.current(channel: FlutterAudioRecorder4.DEFAULT_CHANNEL);
-    triggerStateRefresh();
-  }
-
-    */
+    _destroyOldTimer();
+    _createNewTimer(recordingUpdateIntervalMillis);
 
     var result = await MethodChannelHandler.METHOD_CHANNEL.invokeMethod(NativeMethodCall.START.methodName);
     _updateRecording(result, "Recording started", "Recording not started");
+
+    onStartedCallback?.call(recording);
+
     return recording;
+  }
+
+  _createNewTimer(int millis) {
+
+    final interval = Duration(milliseconds: millis);
+
+    _timer = Timer.periodic(interval, (Timer timer) async {
+      if (isStopped) {
+        timer.cancel();
+      }
+
+      await current(channel: MethodChannelHandler.DEFAULT_CHANNEL);
+      onRecordingUpdatedCallback?.call(recording);
+    });
+  }
+
+  _destroyOldTimer() {
+    _timer?.cancel();
+    _timer = null;
   }
 
   /// Request currently [Recording] recording to be [Paused]
@@ -204,6 +218,9 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
   Future<Recording> pause() async {
     var result = await MethodChannelHandler.METHOD_CHANNEL.invokeMethod(NativeMethodCall.PAUSE.methodName);
     _updateRecording(result, "Recording paused", "Recording not paused");
+
+    onPausedCallback?.call(recording);
+
     return recording;
   }
 
@@ -211,6 +228,9 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
   Future<Recording> resume() async {
     var result = MethodChannelHandler.METHOD_CHANNEL.invokeMethod(NativeMethodCall.RESUME.methodName);
     _updateRecording(result, "Recording resumed", "Recording not resumed");
+
+    onResumeCallback?.call(recording);
+
     return recording;
   }
 
@@ -220,6 +240,9 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
   Future<Recording> stop() async {
     var result = await MethodChannelHandler.METHOD_CHANNEL.invokeMethod(NativeMethodCall.STOP.methodName);
     _updateRecording(result, "Recording stopped", "Recording not stopped");
+
+    onStoppedCallback?.call(recording);
+
     return recording;
   }
 }
