@@ -87,6 +87,13 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
     if (automaticallyRequestPermissions ?? false) hasPermissions;
   }
 
+  Future<Recording> updateFilePathAndInit(String? filepath) {
+    // The filepath of the recording in dart should not be written to directly.
+    // Instead, init should be called so that the native recorder updates its filepath
+    // and returns success if able to update and error otherwise
+    return init(filepath, audioFormat, sampleRateHz);
+  }
+
   Future<Recording> init(String? filepath, AudioFormat? audioFormat, int sampleRateHz) async {
 
     Map<String, String?> pathAndExtension = await _resolvePathAndExtension(filepath, audioFormat);
@@ -166,16 +173,6 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
       return updatedRecording;
     } catch(exception) {
       return false;
-    }
-  }
-
-  bool setFilepath(String? path) {
-    if (recording.isInitialized) {
-      return false;
-    } else {
-      recording.filepath = path;
-      init(filepath, audioFormat, sampleRateHz);
-      return true;
     }
   }
 

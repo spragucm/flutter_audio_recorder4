@@ -129,7 +129,7 @@ class FlutterAudioRecorder4Plugin(
       message = "Recorder initialized"
       result.success(recording)
     } else {
-      result.error("", "Recorder not initialized", "RecorderState is not UNSET, INITIALIZED, or STOPPED - i.e. currently recording")
+      result.error("", "Recorder not re-initialized", "RecorderState is not UNSET, INITIALIZED, or STOPPED - i.e. currently recording")
     }
   }
 

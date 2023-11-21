@@ -57,7 +57,9 @@ class RecorderExampleState extends State<RecorderExample> {
     if (appDocDirectory != null) {
       // If the filepath is initially null, and then later set, the caller needs to manually query the recording again
       // or set onRecordingUpdatedCallback. The later is used in this example as it's the preferred approach
-      recorder.setFilepath('${appDocDirectory.path}/flutter_audio_recorder_${DateTime.now().millisecondsSinceEpoch}');
+      var filepath = '${appDocDirectory.path}/flutter_audio_recorder_${DateTime.now().millisecondsSinceEpoch}';
+      var initializedResult = await recorder.updateFilePathAndInit(filepath);//It's safe to call init again. Only filepath changed though, so prefer updateFilePathAndInit
+      showSnackBarMessageIfNotNull(initializedResult.message);
     } else {
       showSnackBarMessage("Could not get app doc directory");
     }
