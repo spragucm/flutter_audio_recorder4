@@ -12,8 +12,6 @@ import 'package:flutter_audio_recorder4_example/utils.dart';
 import 'package:restart_app/restart_app.dart';
 import 'dart:developer' as developer;
 
-import 'package:path_provider/path_provider.dart';
-
 class RecorderExample extends StatefulWidget {
 
   final LocalFileSystem localFileSystem;
@@ -62,6 +60,7 @@ class RecorderExampleState extends State<RecorderExample> {
     updatePlatformVersion();
   }
 
+  //TODO - CHRIS - not sure why platform version is in the example
   Future<void> updatePlatformVersion() async {
     var platformVersion = await recorder.getPlatformVersion();
     setState((){
@@ -88,19 +87,13 @@ class RecorderExampleState extends State<RecorderExample> {
     SnackBar(content: Text(message))
   );
 
-  //TODO - CHRIS - there is no reason to wait to init the recorder until permissions are accepted
-  //Instead, when the user goes to record, show the snackbar notification
-  /*try {
-  await recorder.initialized;
-  await updateRecording();
-  } catch(exception) {
-  developer.log("Initialized exception:$exception");
-  }// Recorder should now be INITIALIZED if everything is working*/
-
   void start() async {
-    var initialized = await recorder.initialized;
+    var initializedResult = await recorder.initialized;
+    showSnackBarMessageIfNotNull(initializedResult.message);
+
     var result = await recorder.start();
     showSnackBarMessageIfNotNull(result.message);
+
     triggerStateRefresh();
   }
 
