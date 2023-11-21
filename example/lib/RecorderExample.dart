@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io' as io;
-
 import 'package:audioplayers/audioplayers.dart';
 import 'package:file/file.dart';
 import 'package:file/local.dart';
@@ -9,7 +8,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_audio_recorder4/audio_format.dart';
 import 'package:flutter_audio_recorder4/flutter_audio_recorder4.dart';
 import 'package:flutter_audio_recorder4/recorder_state.dart';
-import 'package:flutter_audio_recorder4/recording.dart';
 import 'package:flutter_audio_recorder4_example/utils.dart';
 import 'package:restart_app/restart_app.dart';
 import 'dart:developer' as developer;
@@ -80,6 +78,12 @@ class RecorderExampleState extends State<RecorderExample> {
     });
   }
 
+  showSnackBarMessageIfNotNull(String? message) {
+    if (message != null) {
+      showSnackBarMessage(message);
+    }
+  }
+
   showSnackBarMessage(String message) => ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(content: Text(message))
   );
@@ -95,18 +99,20 @@ class RecorderExampleState extends State<RecorderExample> {
 
   void start() async {
     var initialized = await recorder.initialized;
-
-    showSnackBarMessage(await recorder.start());
+    var result = await recorder.start();
+    showSnackBarMessageIfNotNull(result.message);
     triggerStateRefresh();
   }
 
   void resume() async {
-    showSnackBarMessage(await recorder.resume());
+    var result = await recorder.resume();
+    showSnackBarMessageIfNotNull(result.message);
     triggerStateRefresh();
   }
 
   void pause() async {
-    showSnackBarMessage(await recorder.pause());
+    var result = await recorder.pause();
+    showSnackBarMessageIfNotNull(result.message);
     triggerStateRefresh();
   }
 
