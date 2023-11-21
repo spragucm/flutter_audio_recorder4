@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_audio_recorder4/audio_format.dart';
 import 'package:flutter_audio_recorder4/flutter_audio_recorder4.dart';
 import 'package:flutter_audio_recorder4/recorder_state.dart';
+import 'package:flutter_audio_recorder4/recording.dart';
 import 'package:flutter_audio_recorder4_example/utils.dart';
 import 'package:restart_app/restart_app.dart';
 import 'dart:developer' as developer;
@@ -54,7 +55,9 @@ class RecorderExampleState extends State<RecorderExample> {
     // Waiting until init() to determine path because ctor isn't async
     io.Directory? appDocDirectory = await getAppDocDirectory();
     if (appDocDirectory != null) {
-      recorder.filepath = '${appDocDirectory.path}/flutter_audio_recorder_${DateTime.now().millisecondsSinceEpoch}';
+      // If the filepath is initially null, and then later set, the caller needs to manually query the recording again
+      // or set onRecordingUpdatedCallback. The later is used in this example as it's the preferred approach
+      recorder.setFilepath('${appDocDirectory.path}/flutter_audio_recorder_${DateTime.now().millisecondsSinceEpoch}');
     } else {
       showSnackBarMessage("Could not get app doc directory");
     }
@@ -158,9 +161,9 @@ class RecorderExampleState extends State<RecorderExample> {
             buildVersionsRow(),
             buildRecorderRow(),
             buildRecorderStateRow(),
+            buildFilepathRow(),
             buildAveragePowerRow(),
             buildPeakPowerRow(),
-            buildFilepathRow(),
             buildAudioFormatRow(),
             buildMeteringEnabledRow(),
             buildExtensionRow(),
