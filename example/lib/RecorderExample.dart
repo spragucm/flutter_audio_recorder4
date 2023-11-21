@@ -27,6 +27,7 @@ class RecorderExample extends StatefulWidget {
 class RecorderExampleState extends State<RecorderExample> {
 
   late FlutterAudioRecorder4 recorder;
+  AudioPlayer audioPlayer = AudioPlayer();
 
   String platformVersion = "";
   String libraryVersion = "TODO";
@@ -53,22 +54,10 @@ class RecorderExampleState extends State<RecorderExample> {
   }
 
   void init() {
+    audioPlayer.onPlayerStateChanged.listen((event) {
+      triggerStateRefresh();
+    });
     updatePlatformVersion();
-  }
-
-  void _initWithFilepath() async {
-    // Waiting until init() to determine path because ctor isn't async
-    io.Directory? appDocDirectory = await getAppDocDirectory();
-    if (appDocDirectory != null) {
-      // If the filepath is initially null, and then later set, the caller needs to manually query the recording again
-      // or set onRecordingUpdatedCallback. The later is used in this example as it's the preferred approach
-      var filepath = '${appDocDirectory.path}/flutter_audio_recorder_${DateTime.now().millisecondsSinceEpoch}';
-      var initializedResult = await recorder.updateFilePathAndInit(filepath); // It's safe to call init again. Only filepath changed though, so prefer updateFilePathAndInit
-      showSnackBarMessageIfNotNull(initializedResult.message);               // Caller would need to manually call triggerStateRefresh or pass onInitializedCallback in order
-      // to see the new file path in the UI. We're opting for the callback in the ctor
-    } else {
-      showSnackBarMessage("Could not get app doc directory");
-    }
   }
 
   void start() async {
@@ -121,7 +110,7 @@ class RecorderExampleState extends State<RecorderExample> {
     if (playableRecordingFile == null) {//TODO - CHRIS - snackbar the user
       developer.log("OnPlayAudio filepath is null");
     } else {
-      await AudioPlayer().play(DeviceFileSource(playableRecordingFile.path));//TODO - CHRIS - for the initial migration, don't add this dependency to the library; then, for 2.0.0, add to library
+      await audioPlayer.play(DeviceFileSource(playableRecordingFile.path));//TODO - CHRIS - for the initial migration, don't add this dependency to the library; then, for 2.0.0, add to library
     }
   }
 
@@ -172,6 +161,7 @@ class RecorderExampleState extends State<RecorderExample> {
             buildVersionsRow(),
             buildRecorderRow(),
             buildRecorderStateRow(),
+            buildAudioPlayerStateRow(),
             buildFilepathRow(),
             buildAveragePowerRow(),
             buildPeakPowerRow(),
@@ -215,8 +205,11 @@ class RecorderExampleState extends State<RecorderExample> {
           buildResumeButton(),
           buildStopButton()
         ],
-        if (recorder.playableRecordingFile != null) ... [
+        if (recorder.playableRecordingFile != null && audioPlayer.state != PlayerState.playing) ... [
           buildPlayAudioButton()
+        ],
+        if (recorder.playableRecordingFile != null && audioPlayer.state == PlayerState.playing) ... [
+          buildStopAudioButton()
         ]
       ]
     );
@@ -295,6 +288,14 @@ class RecorderExampleState extends State<RecorderExample> {
     child: Text("Play", style: buildButtonTextStyle())
   );
 
+  Widget buildStopAudioButton() => TextButton(
+      onPressed: () => {
+        audioPlayer.stop()
+      },
+      style: buildButtonStyle(),
+      child: Text("Stop", style: buildButtonTextStyle())
+  );
+
   Widget buildNextRecorderStateButton() {
     return Padding(
       padding: buildEdgeInsets(),
@@ -322,6 +323,7 @@ class RecorderExampleState extends State<RecorderExample> {
 
   TextStyle buildButtonTextStyle() => const TextStyle(color: Colors.white);
 
+  Widget buildAudioPlayerStateRow() => Text("Audio Player state:${audioPlayer.state}");
   Widget buildFilepathRow() => Text("Filepath:${recorder.filepath}");
   Widget buildExtensionRow() => Text("Extension:${recorder.extension}");
   Widget buildDurationRow() => Text("Duration:${recorder.duration}");

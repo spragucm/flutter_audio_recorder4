@@ -173,7 +173,6 @@ class FlutterAudioRecorder4Plugin(
     } else {
       recorderState = STOPPED
 
-      resetRecorder()
       recordingThread = null
       recorder?.stop()
       recorder?.release()

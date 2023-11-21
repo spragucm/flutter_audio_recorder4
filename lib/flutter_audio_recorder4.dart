@@ -46,9 +46,9 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
   bool get isPaused => recording.isPaused;
   bool get isStopped => recording.isStopped;
   bool get isPlayable => recording.isPlayable;
-  File? get recordingFile => _localFileSystem.toFile(recording);
-  File? get playableRecordingFile => _localFileSystem.toFile(recording, onlyIfPlayable: true);
-  Future<int> get recordingFileSizeInBytes => _localFileSystem.fileSizeInBytes(recording);
+  File? recordingFile;
+  File? playableRecordingFile;
+  int? recordingFileSizeInBytes;
   int recordingUpdateIntervalMillis;
 
   late Future initialized;
@@ -247,6 +247,12 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
   /// Stop may be called as many times as desired, but the recording will only be stopped once.
   Future<Recording> stop() async {
     var result = await MethodChannelHandler.METHOD_CHANNEL.invokeMethod(NativeMethodCall.STOP.methodName);
-    return _updateRecording(result, "Recording stopped", onStoppedCallback, "Recording not stopped", null);//TODO - CHRIS - we should have an error callback
+    var updatedRecording = _updateRecording(result, "Recording stopped", onStoppedCallback, "Recording not stopped", null);//TODO - CHRIS - we should have an error callback
+
+    recordingFile = _localFileSystem.toFile(recording);
+    playableRecordingFile = _localFileSystem.toFile(recording, onlyIfPlayable: true);
+    recordingFileSizeInBytes = await _localFileSystem.fileSizeInBytes(recording);
+
+    return updatedRecording;
   }
 }
