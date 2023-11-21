@@ -36,12 +36,13 @@ class RecorderExampleState extends State<RecorderExample> {
 
   RecorderExampleState({LocalFileSystem? localFileSystem }) {
     recorder = FlutterAudioRecorder4(
-        null,                                           // No need to avoid a null filepath; recorder won't break, but it won't initialize either
+        null,                                                   // No need to avoid a null filepath; recorder won't break, but it won't initialize either
         audioFormat: AudioFormat.AAC,
         localFileSystem: localFileSystem,
-        automaticallyRequestPermissions: true,          // This is true by default, just highlighting it so that callers can disable if desired
-        hasPermissionsCallback: _hasPermissionsCallback,  // If a callback was passed into CTOR, it will be triggered with the result, so no need to wait
-        onRecordingUpdatedCallback: _onRecordingUpdatedCallback
+        automaticallyRequestPermissions: true,                  // This is true by default, just highlighting it so that callers can disable if desired
+        hasPermissionsCallback: _hasPermissionsCallback,        // If a callback was passed into CTOR, it will be triggered with the result, so no need to wait
+        onInitializedCallback: _onRecordingInitializedCallback, //Not required, but useful
+        onRecordingUpdatedCallback: _onRecordingUpdatedCallback //Not required, but useful
     );
   }
 
@@ -58,8 +59,9 @@ class RecorderExampleState extends State<RecorderExample> {
       // If the filepath is initially null, and then later set, the caller needs to manually query the recording again
       // or set onRecordingUpdatedCallback. The later is used in this example as it's the preferred approach
       var filepath = '${appDocDirectory.path}/flutter_audio_recorder_${DateTime.now().millisecondsSinceEpoch}';
-      var initializedResult = await recorder.updateFilePathAndInit(filepath);//It's safe to call init again. Only filepath changed though, so prefer updateFilePathAndInit
-      showSnackBarMessageIfNotNull(initializedResult.message);
+      var initializedResult = await recorder.updateFilePathAndInit(filepath); // It's safe to call init again. Only filepath changed though, so prefer updateFilePathAndInit
+      showSnackBarMessageIfNotNull(initializedResult.message);               // Caller would need to manually call triggerStateRefresh or pass onInitializedCallback in order
+                                                                             // to see the new file path in the UI. We're opting for the callback in the ctor
     } else {
       showSnackBarMessage("Could not get app doc directory");
     }
@@ -135,6 +137,10 @@ class RecorderExampleState extends State<RecorderExample> {
     setState(() {
       this.hasPermissions = hasPermissions;
     });
+  }
+
+  _onRecordingInitializedCallback(Recording recording) {
+    triggerStateRefresh();
   }
 
   _onRecordingUpdatedCallback(Recording recording) {
