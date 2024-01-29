@@ -35,8 +35,8 @@ enum MethodCalls: CaseIterable {
     }
 }
 
-extension String? {
-    func toMethodCall() -> String? {
-        return MethodCalls.AllCases().first { $0.methodName == self }?.methodName
+extension String {
+    func toMethodCall() -> MethodCalls? {
+        return MethodCalls.AllCases().first { $0.methodName == self }
     }
 }
