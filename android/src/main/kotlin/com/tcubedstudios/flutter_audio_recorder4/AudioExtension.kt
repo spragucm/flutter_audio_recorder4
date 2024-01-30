@@ -7,8 +7,8 @@ enum class AudioExtension(val extension: String, val audioFormat: AudioFormat) {
     WAV(".wav", AudioFormat.WAV);
 
     companion object {
-        fun String?.toAudioFormat() : AudioFormat? {
-            return AudioExtension.values().firstOrNull { it.extension == this }?.audioFormat
+        fun String?.toAudioExtension() : AudioExtension? {
+            return AudioExtension.values().firstOrNull { it.extension == this }
         }
     }
 }

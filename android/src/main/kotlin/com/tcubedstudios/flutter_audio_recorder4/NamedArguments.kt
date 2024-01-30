@@ -3,7 +3,7 @@ package com.tcubedstudios.flutter_audio_recorder4
 object NamedArguments {
     const val AUDIO_FORMAT = "audioFormat"
     const val AVERAGE_POWER = "averagePower"
-    const val CHANNEL = "channel"
+    const val IOS_AUDIO_CHANNEL = "iosAudioChannel"
     const val DURATION = "duration"
     const val EXTENSION = "extension"
     const val FILEPATH = "filepath"

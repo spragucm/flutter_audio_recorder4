@@ -16,7 +16,7 @@ import android.media.AudioFormat.ENCODING_PCM_16BIT
 import android.media.AudioRecord
 import android.media.MediaRecorder.AudioSource.MIC
 import android.os.Build.VERSION_CODES
-import com.tcubedstudios.flutter_audio_recorder4.AudioExtension.Companion.toAudioFormat
+import com.tcubedstudios.flutter_audio_recorder4.AudioFormat.Companion.toAudioFormat
 import com.tcubedstudios.flutter_audio_recorder4.MethodCalls.*
 import com.tcubedstudios.flutter_audio_recorder4.MethodCalls.Companion.toMethodCall
 import com.tcubedstudios.flutter_audio_recorder4.NamedArguments.FILEPATH_TEMP
@@ -98,6 +98,8 @@ class FlutterAudioRecorder4Plugin(
       SAMPLE_RATE_HZ to sampleRateHz,
       MESSAGE to message
     )
+
+  private var processAudioStream = false
   //endregion
 
   //region Handle method calls from flutter
@@ -145,25 +147,19 @@ class FlutterAudioRecorder4Plugin(
       return
     }
 
-    recorder?.startRecording()
-    recorderState = RECORDING
-    startThread()
+    startProcessing()
     result.success(recording)
   }
 
   private fun handlePause(result: Result) {
     recorderState = PAUSED
-    peakPower = DEFAULT_PEAK_POWER
-    averagePower = DEFAULT_AVERAGE_POWER
-    recorder?.stop()
-    recordingThread = null
+    stopProcessing(false)
+    resetPowers()
     result.success(recording)
   }
 
   private fun handleResume(result: Result) {
-    recorderState = RECORDING
-    recorder?.startRecording()
-    startThread()
+    startProcessing()
     result.success(recording)
   }
 
@@ -173,9 +169,7 @@ class FlutterAudioRecorder4Plugin(
     } else {
       recorderState = STOPPED
 
-      recordingThread = null
-      recorder?.stop()
-      recorder?.release()
+      stopProcessing(true)
 
       var exception: IOException? = null
       try {
@@ -201,17 +195,34 @@ class FlutterAudioRecorder4Plugin(
   }
 
   private fun resetRecorder() {
-    peakPower = DEFAULT_PEAK_POWER
-    averagePower = DEFAULT_AVERAGE_POWER
+    resetPowers()
     dataSizeBytes = DEFAULT_DATA_SIZE_BYTES
   }
   //endregion
 
   //region Audio Stream
+  private fun startProcessing() {
+    recorderState = RECORDING
+    recorder?.startRecording()
+    processAudioStream = true
+    recordingThread = Thread({ processAudioStream() }, "Audio Processing Thread")
+    recordingThread?.start()
+  }
+
+  private fun stopProcessing(doRelease: Boolean) {
+    recorder?.stop()
+    if (doRelease) {
+      recorder?.release()
+      recorder = null
+    }
+    processAudioStream = false
+    recordingThread = null
+  }
+
   private fun processAudioStream() {
     val audioData = ByteArray(bufferSizeBytes)
 
-    while (recorderState === RECORDING) {
+    while (processAudioStream) {
       recorder?.read(audioData, 0, audioData.size)
       dataSizeBytes += audioData.size.toLong()
       updatePowers(audioData)
@@ -237,12 +248,10 @@ class FlutterAudioRecorder4Plugin(
 
     peakPower = averagePower
   }
-  //endregion
 
-  //region Threads
-  private fun startThread() {
-    recordingThread = Thread({ processAudioStream() }, "Audio Processing Thread")
-    recordingThread?.start()
+  private fun resetPowers() {
+    peakPower = DEFAULT_PEAK_POWER
+    averagePower = DEFAULT_AVERAGE_POWER
   }
   //endregion
 

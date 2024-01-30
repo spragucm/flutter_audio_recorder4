@@ -17,6 +17,7 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
 
   static const String METHOD_CHANNEL_NAME = "com.tcubedstudios.flutter_audio_recorder4";
   static const String LOG_NAME = METHOD_CHANNEL_NAME;
+  static const int DEFAULT_IOS_AUDIO_CHANNEL = 0;
 
   //TODO - CHRIS - required for backwards compatibility, but I really don't like the statics
   /// Returns the result of record permission
@@ -105,7 +106,6 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
 
     await _invokeNativeInit();
 
-
     return recording;
   }
 
@@ -166,7 +166,7 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
     return recording;
   }
 
-  Future<Recording> _invokeNativeInit() async {
+  Future<Recording> _invokeNativeInit({int iosAudioChannel = DEFAULT_IOS_AUDIO_CHANNEL}) async {
     try {
       //Only passing values to init that are settable by caller
       var result = await MethodChannelHandler.METHOD_CHANNEL.invokeMethod(
@@ -174,7 +174,8 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
           {
             NamedArguments.FILEPATH: recording.filepath,
             NamedArguments.EXTENSION: recording.extension,
-            NamedArguments.SAMPLE_RATE_HZ: recording.sampleRateHz
+            NamedArguments.SAMPLE_RATE_HZ: recording.sampleRateHz,
+            NamedArguments.IOS_AUDIO_CHANNEL: iosAudioChannel//Only ios uses the audio channel number
           }
       );
 
@@ -191,10 +192,7 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
   /// Metering level, Duration, Status...
   Future<Recording?> current({int? channel}) async {
     var result = await MethodChannelHandler.METHOD_CHANNEL.invokeMethod(
-        NativeMethodCall.CURRENT.methodName,
-        {
-          NamedArguments.CHANNEL: channel ?? MethodChannelHandler.DEFAULT_CHANNEL //TODO - CHRIS - why pass channel when Android not using it?
-        }
+        NativeMethodCall.CURRENT.methodName
     );
     return _updateRecording(result, "Recording retrieved", onRecordingUpdatedCallback, "Recording not retrieved", null);//TODO - CHRIS - we should have an error callback
   }
@@ -219,7 +217,7 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
         timer.cancel();
       }
 
-      await current(channel: MethodChannelHandler.DEFAULT_CHANNEL);
+      await current();
       onRecordingUpdatedCallback?.call(recording);
     });
   }

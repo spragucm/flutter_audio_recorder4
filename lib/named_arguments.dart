@@ -1,7 +1,7 @@
 class NamedArguments {
   static String AUDIO_FORMAT = "audioFormat";
   static String AVERAGE_POWER = "averagePower";
-  static String CHANNEL = "channel";
+  static String IOS_AUDIO_CHANNEL = "iosAudioChannel";
   static String DURATION = "duration";
   static String EXTENSION = "extension";
   static String FILEPATH = "filepath";
