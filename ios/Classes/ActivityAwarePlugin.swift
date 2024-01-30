@@ -1,5 +1,5 @@
 import Foundation
 
-protocol ActivityAwarePlugin: ActivityAwarePlugin {
+public class ActivityAwarePlugin: FlutterPluginImpl {
     
 }

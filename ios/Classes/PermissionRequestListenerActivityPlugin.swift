@@ -1,7 +1,7 @@
 import Flutter
 import AVFoundation
 
-public class PermissionRequestListenerActivityPlugin: FlutterPluginImpl {
+public class PermissionRequestListenerActivityPlugin: ActivityAwarePlugin {
     
     public var hasPermissions = false
  

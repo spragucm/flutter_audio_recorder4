@@ -3,7 +3,7 @@ import Foundation
 struct NamedArguments {
     static let AUDIO_FORMAT = "audioFormat"
     static let AVERAGE_POWER = "averagePower"
-    static let CHANNEL = "channel"
+    static let IOS_AUDIO_CHANNEL = "iosAudioChannel"
     static let DURATION = "duration"
     static let EXTENSION = "extension"
     static let FILEPATH = "filepath"

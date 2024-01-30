@@ -1,4 +1,4 @@
-import Foundation
+import AVFoundation
 
 enum AudioExtension: CaseIterable {
     
@@ -22,6 +22,10 @@ enum AudioExtension: CaseIterable {
         }
     }
     
+    var audioFormatIdentifier: Int {
+        return ext.getAudioDataFormatIdentifierFromFormat()
+    }
+    
     var audioFormat: AudioFormat {
         get {
             switch self {
@@ -38,8 +42,21 @@ enum AudioExtension: CaseIterable {
     }
 }
 
-extension String? {
-    func toAudioFormat() -> AudioFormat? {
-        return AudioExtension.AllCases().first { $0.ext == self }?.audioFormat
+extension String {
+    
+    func toAudioExtension() -> AudioExtension? {
+        return AudioExtension.AllCases().first { $0.ext == self }
+    }
+    
+    // developer.apple.com/documentation/coreaudiotypes/coreaudiotype_constants/1572096-audio_data_format_identifiers
+    func getAudioDataFormatIdentifierFromFormat() -> Int {
+        switch self {
+        case ".mp4", ".aac", ".m4a":
+            return Int(kAudioFormatMPEG4AAC)
+        case ".wav":
+            return Int(kAudioFormatLinearPCM)
+        default:
+            return Int(kAudioFormatMPEG4AAC)
+        }
     }
 }

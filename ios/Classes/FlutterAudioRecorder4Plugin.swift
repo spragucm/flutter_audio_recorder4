@@ -11,6 +11,7 @@ public class FlutterAudioRecorder4Plugin: PermissionRequestListenerActivityPlugi
     private static let DEFAULT_BUFFER_SIZE_BYTES = 1024
     private static let DEFAULT_METERING_ENABLED = true
     private static let DEFAULT_RECORDER_BPP: UInt8 = 16
+    private static let DEFAULT_IOS_AUDIO_CHANNEL = 0
     private static let IOS_POWER_LEVEL_FACTOR = 0.25// iOS factor : to match iOS power level
     
     
@@ -25,12 +26,38 @@ public class FlutterAudioRecorder4Plugin: PermissionRequestListenerActivityPlugi
     private var ext: String?
     private var meteringEnabled = DEFAULT_METERING_ENABLED
     private var message: String?
+    private var iosAudioChannel: Int = DEFAULT_IOS_AUDIO_CHANNEL
     
+    private var filepathTemp: String? {
+        get {
+            return filepath?.plus(".temp")
+        }
+    }
+    
+    private var duration: Int = 0
+    
+    private var recording: [String : Any?] {
+        get {
+            [
+                NamedArguments.FILEPATH: filepath,
+                NamedArguments.FILEPATH_TEMP: [filepathTemp, "bla"].compactMap { $0 }.joined(separator:""),
+                NamedArguments.EXTENSION: ext,
+                NamedArguments.DURATION: duration,
+                NamedArguments.AUDIO_FORMAT: ext?.toAudioFormat()?.name,
+                NamedArguments.RECORDER_STATE: recorderState.value,
+                NamedArguments.METERING_ENABLED: meteringEnabled,
+                NamedArguments.PEAK_POWER: peakPower,
+                NamedArguments.AVERAGE_POWER: averagePower,
+                NamedArguments.SAMPLE_RATE_HZ: sampleRateHz,
+                NamedArguments.MESSAGE: message
+            ]
+        }
+    }
+    
+    private var doProcessAudioStream = false
        
-    var channel = 0
     var startTime: Date!
-    var settings: [String:Int]!
-    
+  
    
     override public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
        
@@ -48,183 +75,141 @@ public class FlutterAudioRecorder4Plugin: PermissionRequestListenerActivityPlugi
         case .RESUME:
             result(handleResume(result))
         default:
-            result(super.handle(<#T##call: FlutterMethodCall##FlutterMethodCall#>, result: <#T##FlutterResult##FlutterResult##(Any?) -> Void#>))
+            result(super.handle(call, result: result))
         }
     }
     
     
     private func handleInit(_ call: FlutterMethodCall, _ result: @escaping FlutterResult) {
-        
         if (recorderState == RecorderState.UNSET || recorderState == RecorderState.INITIALIZED || recorderState == RecorderState.STOPPED) {
             resetRecorder()
             
             let dic = call.arguments as! [String : Any]
             
-            filepath = dic[NamedArguments.FILEPATH] as? String ?? ""
-            ext = dic[NamedArguments.EXTENSION] as? String ?? ""
-            sampleRateHz = dic[NamedArguments.SAMPLE_RATE_HZ] as? Int ?? 16000
-            bufferSizeBytes = AudioRecord.getMinBufferSize(sampleRateHz, CHANNEL_IN_MONO, ENCODING_PCM_16BIT)
-            recorderState = if (filepath != nil && !filepath.isEmpty) RecorderState.INITIALIZED else RecorderState.UNSET
+            filepath = dic[NamedArguments.FILEPATH] as? String
+            if (filepath == "") {
+                var startTime = Date()
+                let documentsPath = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]
+                filepath = documentsPath + "/" + String(Int(startTime.timeIntervalSince1970)) + ".m4a"
+                print("path: " + (filepath ?? ""))
+            }
+            
+            ext = dic[NamedArguments.EXTENSION] as? String
+            sampleRateHz = dic[NamedArguments.SAMPLE_RATE_HZ] as? Int ?? sampleRateHz
+            recorderState = filepath.isNotNullOrEmpty() && ext.isNotNullOrEmpty() ? RecorderState.INITIALIZED : RecorderState.UNSET
             message = "Recorder initialized"
+            iosAudioChannel = dic[NamedArguments.IOS_AUDIO_CHANNEL] as? Int ?? FlutterAudioRecorder4Plugin.DEFAULT_IOS_AUDIO_CHANNEL
+            result(recording)
         } else {
             result(FlutterError(code: "", message: "Recorder not re-initialized", details: "RecorderState is not UNSET, INITIALIZED, or STOPPED - i.e. currectly recording"))
-        }
-        
- 
-        
-    
-        startTime = Date()
-        if (filepath == "") {
-            let documentsPath = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]
-            filepath = documentsPath + "/" + String(Int(startTime.timeIntervalSince1970)) + ".m4a"
-            print("path: " + (filepath ?? ""))
-        }
-        
-        settings = [
-            AVFormatIDKey: getOutputFormatFromString(ext),
-            AVSampleRateKey: sampleRateHz,
-            AVNumberOfChannelsKey: 1,
-            AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
-        ]
-        
-        do {
-            #if swift(>=4.2)
-            try AVAudioSession.sharedInstance().setCategory(AVAudioSession.Category.playAndRecord, options: AVAudioSession.CategoryOptions.defaultToSpeaker)
-            #else
-            try AVAudioSession.sharedInstance().setCategory(AVAudioSessionCategoryPlayAndRecord, with: AVAudioSessionCategoryOptions.defaultToSpeaker)
-            #endif
-            
-            try AVAudioSession.sharedInstance().setActive(true)
-            recorder = try AVAudioRecorder(url: URL(string: filepath)!, settings: settings)
-            recorder.delegate = self
-            recorder.isMeteringEnabled = true
-            recorder.prepareToRecord()
-            
-            let duration = Int(recorder.currentTime * 1000)
-            status = "initialized"
-            
-            var recordingResult = [String : Any]()
-            recordingResult["duration"] = duration
-            recordingResult["path"] = filepath
-            recordingResult["audioFormat"] = ext
-            recordingResult["peakPower"] = 0
-            recordingResult["averagePower"] = 0
-            recordingResult["isMeteringEnabled"] = recorder.isMeteringEnabled
-            recordingResult["status"] = status
-            
-            result(recordingResult)
-        } catch {
-            print("fail")
-            result(FlutterError(code: "", message: "Failed to init", details: error))
         }
     }
         
     private func handleCurrent(_ result: @escaping FlutterResult) {
-        print("current")
-        if (recorder == nil) {
-            result(nil)
-        } else {
-            let dic = call.arguments as! [String : Any]
-            channel = dic["channel"] as? Int ?? 0
-            
-            recorder.updateMeters()
-            let duration = Int(recorder.currentTime * 1000)
-            var recordingResult = [String : Any]()
-            recordingResult["duration"] = duration
-            recordingResult["path"] = filepath
-            recordingResult["audioFormat"] = ext
-            recordingResult["peakPower"] = recorder.peakPower(forChannel: channel)
-            recordingResult["averagePower"] = recorder.averagePower(forChannel: channel)
-            recordingResult["isMeteringEnabled"] = recorder.isMeteringEnabled
-            recordingResult["status"] = status
-            result(recordingResult)
-        }
+        result(recording)
     }
     
     private func handleStart(_ result: @escaping FlutterResult) {
-        print("start")
-        
-        if status == "initialized" {
-            recorder.record()
-            status = "recording"
+        do {
+            
+            var audioSession = AVAudioSession.sharedInstance()
+            
+            #if swift(>=4.2)
+            try audioSession.setCategory(AVAudioSession.Category.playAndRecord, options: AVAudioSession.CategoryOptions.defaultToSpeaker)
+            #else
+            try audioSession.setCategory(AVAudioSession.CategoryPlayAndRecord, with: AVAudioSessionCategoryOptions.defaultToSpeaker)
+            #endif
+            
+            try audioSession.setActive(true)
+            
+            if let urlFilepath = filepath {
+                
+                var settings = [
+                    AVFormatIDKey: ext?.toAudioExtension()?.audioFormatIdentifier,
+                    AVSampleRateKey: sampleRateHz,
+                    AVNumberOfChannelsKey: 1,
+                    AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
+                ]
+                                
+                recorder = try AVAudioRecorder(url: URL(string: urlFilepath)!, settings: settings)
+                recorder?.delegate = self
+                recorder?.isMeteringEnabled = (recording[NamedArguments.METERING_ENABLED] as? Bool) ?? FlutterAudioRecorder4Plugin.DEFAULT_METERING_ENABLED
+                recorder?.prepareToRecord()
+               
+                startProcessing()
+                result(recording)
+            } else {
+                result(FlutterError(code: "", message: "Recorder not started", details: "Problem with filepath"))
+            }
+        } catch {
+            result(FlutterError(code: "", message: "Recorder not started", details: error))
         }
-        
-        result(nil)
     }
     
     private func handlePause(_ result: @escaping FlutterResult) {
-   
-        if (recorder == nil) {
-            result(nil)
-        }
-        
-        if recorderState == RecorderState.RECORDING {
-            recorder.pause()
-            status = "paused"
-        }
-        
-        result(nil)
+        recorderState = RecorderState.PAUSED
+        stopProcessing(doRelase: false)
+        resetPowers()
+        result(recording)
     }
     
     private func handleResume(_ result: @escaping FlutterResult) {
-        print("resume")
-        
-        
-        if audioRecorder == nil {
-            result(nil)
-        }
-        
-        if status == "paused" {
-            recorder.record()
-            status = "recording"
-        }
-        
-        result(nil)
+        startProcessing()
+        result(recording)
     }
     
     private func handleStop(_ result: @escaping FlutterResult) {
-        print("stop")
-        
-        if recorder == nil || status == "unset" {
-            result(nil)
+        if recorderState == RecorderState.STOPPED {
+            result(recording)
         } else {
-            audioRecorder.updateMeters()
-            
-            let duration = Int(recorder.currentTime * 1000)
-            status = "stopped"
-            
-            var recordingResult = [String : Any]()
-            recordingResult["duration"] = duration
-            recordingResult["path"] = filepath
-            recordingResult["audioFormat"] = ext
-            recordingResult["peakpower"] = recorder.peakPower(forChannel: channel)
-            recordingResult["averagePower"] = recorder.averagePower(forChannel: channel)
-            recordingResult["isMeteringEnabled"] = recorder.isMeteringEnabled
-            recordingResult["status"] = status
-            
-            recorder.stop()
-            recorder = nil
-            result(recordingResult)
+            recorderState = RecorderState.STOPPED
+            stopProcessing(doRelase: true)
+        
+            result(recording)
         }
     }
 
+    private func resetRecorder() {
+        resetPowers()
+        dataSizeBytes = FlutterAudioRecorder4Plugin.DEFAULT_DATA_SIZE_BYTES
+    }
     
+    private func startProcessing() {
+        recorderState = RecorderState.RECORDING
+        recorder?.record()
+        doProcessAudioStream = true
+        //TODO - CHRIS - recordingThread = Thread({ processAudioStream() }, "Audio Processing Thread")
+        //TODO - CHRIS - recordingThread?.start()
+    }
     
-    // developer.apple.com/documentation/coreaudiotypes/coreaudiotype_constants/1572096-audio_data_format_identifiers
-    func getOutputFormatFromString(_ format : String) -> Int {
-        switch format {
-        case ".mp4", ".aac", ".m4a":
-            return Int(kAudioFormatMPEG4AAC)
-        case ".wav":
-            return Int(kAudioFormatLinearPCM)
-        default:
-            return Int(kAudioFormatMPEG4AAC)
+    private func stopProcessing(doRelase: Bool) {
+        if (doRelase) {
+            recorder?.stop()
+            recorder = nil
+        } else {
+            recorder?.pause()
+        }
+        doProcessAudioStream = false
+        
+        //TODO - CHRIS - recordingThread = null
+    }
+    
+    private func processAudioStream() {
+        if let rec = recorder {
+            updatePowers(rec)
+            duration = Int(rec.currentTime * 1000)
+            meteringEnabled = rec.isMeteringEnabled
         }
     }
     
-    private func resetRecorder() {
-        peakPower = DEFAULT_PEAK_POWER
-        averagePower = DEFAULT_AVERAGE_POWER
-        dataSizeBytes = DEFAULT_DATA_SIZE_BYTES
+    private func updatePowers(_ recorder: AVAudioRecorder) {
+        recorder.updateMeters()
+        peakPower = Double(recorder.peakPower(forChannel: iosAudioChannel))
+        averagePower = Double(recorder.averagePower(forChannel: iosAudioChannel))
+    }
+    
+    private func resetPowers() {
+        peakPower = FlutterAudioRecorder4Plugin.DEFAULT_PEAK_POWER
+        averagePower = FlutterAudioRecorder4Plugin.DEFAULT_AVERAGE_POWER
     }
 }
