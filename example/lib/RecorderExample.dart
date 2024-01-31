@@ -95,7 +95,7 @@ class RecorderExampleState extends State<RecorderExample> {
       developer.log("Stop recording and filepath is null");
     } else {
       File? playableRecordingFile = recorder.playableRecordingFile;
-      var fileSizeInBytes = await recorder.recordingFileSizeInBytes;
+      var fileSizeInBytes = recorder.recordingFileSizeInBytes;
       developer.log("Stop recording and file length is $fileSizeInBytes");
     }
     triggerStateRefresh();
@@ -179,6 +179,7 @@ class RecorderExampleState extends State<RecorderExample> {
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
       Text("Has permissions:$hasPermissions"),
+      Text("BIG NOTE: Depending on the device, selecting \"don't allow\" permission will permanently disallow the permission and the user will have to go into settings and allow it. If the user selects \"ask every time\" then the permissions popup will display each time. Revoke permissions seemed to work and no longer does :("),
       buildGetPermissionsButton(),
       buildRevokePermissionsButton()
     ],
@@ -264,7 +265,7 @@ class RecorderExampleState extends State<RecorderExample> {
 
   Widget buildGetPermissionsButton() => TextButton(
     onPressed: () async {
-      FlutterAudioRecorder4.hasPermissions;// No need to await; all is handled by hasPermissionsCallback
+      recorder.hasPermissions();// No need to await; all is handled by hasPermissionsCallback
     },
     style: buildButtonStyle(),
     child: Text("Request Permissions", style: buildButtonTextStyle())
@@ -272,7 +273,7 @@ class RecorderExampleState extends State<RecorderExample> {
 
   Widget buildRevokePermissionsButton() => TextButton(
       onPressed: () async {
-        isRevoked = await FlutterAudioRecorder4.revokePermissions ?? false;
+        isRevoked = await recorder.revokePermissions() ?? false;
         setState((){
           hasPermissions = !isRevoked;
         });
