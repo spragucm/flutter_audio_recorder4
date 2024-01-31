@@ -1,5 +1,6 @@
 name: flutter_audio_recorder4_example
 description: "Demonstrates how to use the flutter_audio_recorder4 plugin."
+version: 1.0.0+100
 
 environment:
   sdk: '>=3.3.0-71.0.dev <4.0.0'
@@ -8,7 +9,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  path_provider: ^2.1.1  #TODO - CHRIS - update to  2.1.1
+  path_provider: ^2.1.1
   file: ^7.0.0
   audioplayers: ^1.0.0   #TODO - CHRIS - update to 5.2.0
   cupertino_icons: ^1.0.2
