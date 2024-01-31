@@ -104,8 +104,6 @@ class FlutterAudioRecorder4Plugin(
 
   //region Handle method calls from flutter
   override fun onMethodCall(call: MethodCall, result: Result) {
-    super.onMethodCall(call, result)
-
     when(call.method.toMethodCall()) {
       INIT -> handleInit(call, result)
       CURRENT -> handleCurrent(result)
@@ -113,7 +111,7 @@ class FlutterAudioRecorder4Plugin(
       PAUSE -> handlePause(result)
       RESUME -> handleResume(result)
       STOP -> handleStop(result)
-      else -> result.notImplemented()
+      else -> super.onMethodCall(call, result)
     }
   }
   //endregion

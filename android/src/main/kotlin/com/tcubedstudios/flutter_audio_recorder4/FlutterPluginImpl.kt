@@ -27,8 +27,6 @@ abstract class FlutterPluginImpl(
         }
     }
 
-    protected var result: Result? = null
-
     //region Flutter plugin binding
     // Android plugin v2 binding
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
@@ -44,6 +42,6 @@ abstract class FlutterPluginImpl(
 
     @CallSuper
     override fun onMethodCall(call: MethodCall, result: Result) {
-        this.result = result
+
     }
 }

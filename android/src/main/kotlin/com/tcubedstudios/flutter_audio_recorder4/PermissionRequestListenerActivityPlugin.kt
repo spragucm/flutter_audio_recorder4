@@ -1,7 +1,5 @@
 package com.tcubedstudios.flutter_audio_recorder4
 
-import android.Manifest
-import android.Manifest.permission.POST_NOTIFICATIONS
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.os.Build
 import androidx.core.app.ActivityCompat
@@ -14,11 +12,8 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.PluginRegistry
 import io.flutter.plugin.common.PluginRegistry.Registrar
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
 
-//Registrar is passed for Android plugin v1 compatibility
+// Registrar is passed for Android plugin v1 compatibility
 abstract class PermissionRequestListenerActivityPlugin(
     registrar: Registrar? = null,
     methodChannel: MethodChannel? = null
@@ -65,11 +60,10 @@ abstract class PermissionRequestListenerActivityPlugin(
 
     //region Flutter exchange handling
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
-        super.onMethodCall(call, result)
         when(call.method.toMethodCall()) {
-            HAS_PERMISSIONS -> handleHasPermissions()
-            REVOKE_PERMISSIONS -> revokePermissions()
-            else -> {}
+            HAS_PERMISSIONS -> handleHasPermissions(result)
+            REVOKE_PERMISSIONS -> revokePermissions(result)
+            else -> super.onMethodCall(call, result)
         }
     }
 
@@ -79,31 +73,36 @@ abstract class PermissionRequestListenerActivityPlugin(
     //endregion
 
     //region Permission handling
-    private fun handleHasPermissions() {
+    private fun handleHasPermissions(result: MethodChannel.Result) {
         if (areAllPermissionsGranted()) {
-            result?.success(true)
+            result.success(true)
         } else {
             requestPermissions()
-            result?.success(false)
+            result.success(false)
         }
     }
 
-    private fun revokePermissions() {
+    private fun revokePermissions(result: MethodChannel.Result) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             uniquePermissionsToRequest.forEach { permission ->
-                //TODO - CHRIS - would be nice if this returned isRevoked value
-                activity?.revokeSelfPermissionOnKill(permission)
+                try {
+                    //TODO - CHRIS - would be nice if this returned isRevoked value
+                    activity?.revokeSelfPermissionOnKill(permission)
+                } catch (e: IllegalArgumentException) {}
             }
-            result?.success(true)
+            result.success(true)
+        } else {
+            result.success(false)
         }
-        result?.success(false)
     }
 
     private fun areAllPermissionsGranted() : Boolean {
         activity?.let { activity ->
-            return uniquePermissionsToRequest.all { permission ->
-                ContextCompat.checkSelfPermission(activity, permission) == PERMISSION_GRANTED
-            }
+            try {
+                return uniquePermissionsToRequest.all { permission ->
+                    ContextCompat.checkSelfPermission(activity, permission) == PERMISSION_GRANTED
+                }
+            } catch (e: Exception) {}
         }
         return false
     }
