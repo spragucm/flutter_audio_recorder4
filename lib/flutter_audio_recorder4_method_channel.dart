@@ -9,7 +9,7 @@ import 'named_arguments.dart';
 /// An implementation of [FlutterAudioRecorder4Platform] that uses method channels.
 class MethodChannelFlutterAudioRecorder4 extends FlutterAudioRecorder4Platform {
 
-  static const String METHOD_CHANNEL_NAME = "com.tcubedstudios.flutter_audio_recorder4";
+  static const String METHOD_CHANNEL_NAME = "flutter_audio_recorder4";
 
   /// The method channel used to interact with the native platform.
   @visibleForTesting
