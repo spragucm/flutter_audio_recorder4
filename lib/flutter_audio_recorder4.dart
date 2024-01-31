@@ -1,30 +1,21 @@
+import 'package:flutter_audio_recorder4/flutter_audio_recorder4_method_channel.dart';
 import 'package:flutter_audio_recorder4/permissions_requester.dart';
 import 'package:flutter_audio_recorder4/recorder_state.dart';
 import 'package:flutter_audio_recorder4/recording.dart';
 import 'package:flutter_audio_recorder4/utils.dart';
 import 'audio_metering.dart';
-import 'method_channel_handler.dart';
+import 'flutter_audio_recorder4_platform_interface.dart';
 import 'named_arguments.dart';
 import 'audio_extension.dart';
 import 'audio_format.dart';
 import 'dart:async';
 import 'package:file/local.dart';
 import 'package:path/path.dart' as path_library;
-import 'native_method_call.dart';
 import 'package:file/file.dart';
 
 class FlutterAudioRecorder4 extends PermissionsRequester {
 
-  static const String METHOD_CHANNEL_NAME = "com.tcubedstudios.flutter_audio_recorder4";
-  static const String LOG_NAME = METHOD_CHANNEL_NAME;
   static const int DEFAULT_IOS_AUDIO_CHANNEL = 0;
-
-  //TODO - CHRIS - required for backwards compatibility, but I really don't like the statics
-  /// Returns the result of record permission
-  /// if not determined(app first launch),
-  /// this will ask user to whether grant the permission
-  static Future<bool?> get hasPermissions async => PermissionsRequester.hasPermissions;
-  static Future get revokePermissions async => PermissionsRequester.revokePermissions;
 
   late LocalFileSystem _localFileSystem;
 
@@ -54,11 +45,17 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
 
   late Future initialized;
   Function(Recording recording)? onInitializedCallback;
+  Function(Recording recording)? onInitializedFailedCallback;
   Function(Recording recording)? onStartedCallback;//TODO - CHRIS - this should probably be onRecordingCallback
+  Function(Recording recording)? onStartedFailedCallback;
   Function(Recording recording)? onRecordingUpdatedCallback;
+  Function(Recording recording)? onRecordingUpdatedFailedCallback;
   Function(Recording recording)? onPausedCallback;
+  Function(Recording recording)? onPausedFailedCallback;
   Function(Recording recording)? onResumeCallback;
+  Function(Recording recording)? onResumeFailedCallback;
   Function(Recording recording)? onStoppedCallback;
+  Function(Recording recording)? onStoppedFailedCallback;
 
   Timer? _timer;
 
@@ -69,31 +66,30 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
       String? filepath,
       {
         AudioFormat? audioFormat,
-        int sampleRate = Recording.DEFAULT_SAMPLE_RATE_HZ,//TODO - CHRIS - rename sampleRate to sampleRateHz; this will be a breaking change though
+        int sampleRateHz = Recording.DEFAULT_SAMPLE_RATE_HZ,
         LocalFileSystem? localFileSystem,
         bool? automaticallyRequestPermissions = true,
         this.recordingUpdateIntervalMillis = 50,
         Function(bool)? hasPermissionsCallback,
         this.onInitializedCallback,
+        this.onInitializedFailedCallback,
         this.onStartedCallback,
+        this.onStartedFailedCallback,
         this.onRecordingUpdatedCallback,
+        this.onRecordingUpdatedFailedCallback,
         this.onPausedCallback,
+        this.onPausedFailedCallback,
         this.onResumeCallback,
-        this.onStoppedCallback
+        this.onResumeFailedCallback,
+        this.onStoppedCallback,
+        this.onStoppedFailedCallback
       }
-  ) : super("flutter_audio_recorder4", hasPermissionsCallback: hasPermissionsCallback) {
+  ) : super(MethodChannelFlutterAudioRecorder4.METHOD_CHANNEL_NAME, hasPermissionsCallback: hasPermissionsCallback) {//TODO - CHRIS - this was just flutter_audio_recorder4
     _localFileSystem = localFileSystem ?? const LocalFileSystem();
 
-    initialized = init(filepath, audioFormat, sampleRate);
+    initialized = init(filepath, audioFormat, sampleRateHz);
 
-    if (automaticallyRequestPermissions ?? false) hasPermissions;
-  }
-
-  Future<Recording> updateFilePathAndInit(String? filepath) {
-    // The filepath of the recording in dart should not be written to directly.
-    // Instead, init should be called so that the native recorder updates its filepath
-    // and returns success if able to update and error otherwise
-    return init(filepath, audioFormat, sampleRateHz);
+    if (automaticallyRequestPermissions ?? false) hasPermissions();
   }
 
   Future<Recording> init(String? filepath, AudioFormat? audioFormat, int sampleRateHz) async {
@@ -107,6 +103,13 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
     await _invokeNativeInit();
 
     return recording;
+  }
+
+  Future<Recording> updateFilePathAndInit(String? filepath) {
+    // The filepath of the recording in dart should not be written to directly.
+    // Instead, init should be called so that the native recorder updates its filepath
+    // and returns success if able to update and error otherwise
+    return init(filepath, audioFormat, sampleRateHz);
   }
 
   Future<Map<String, String?>> _resolvePathAndExtension(String? filepath, AudioFormat? audioFormat) async {
@@ -147,54 +150,32 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
       String? errorMessage,
       Function(Recording recording)? errorCallback
   ) {
-
-    recording = Map.from(result).toRecording() ?? recording;
-
     //There is an exception that can be thrown though, so maybe add an error state to the recording, to indicate a problem and then just return the recording
     //TODO - CHRIS - handle result.error as well as result.success
     //TODO - CHRIS - return false when result.error was received
-    var success = true;
-
-    if (success) {
+    if (result is String) {
+      recording.message = "$errorMessage $result"; //TODO - CHRIS - I'd prefer the current recording and success/error be returned in one; not string messages
+      errorCallback?.call(recording);
+    } else if (result is Recording){
+      recording = result;
       recording.message = successMessage;
       successCallback?.call(recording);
-    } else {
-      recording.message = errorMessage;
-      errorCallback?.call(recording);
     }
 
     return recording;
   }
 
   Future<Recording> _invokeNativeInit({int iosAudioChannel = DEFAULT_IOS_AUDIO_CHANNEL}) async {
-    try {
-      //Only passing values to init that are settable by caller
-      var result = await MethodChannelHandler.METHOD_CHANNEL.invokeMethod(
-          NativeMethodCall.INIT.methodName,
-          {
-            NamedArguments.FILEPATH: recording.filepath,
-            NamedArguments.EXTENSION: recording.extension,
-            NamedArguments.SAMPLE_RATE_HZ: recording.sampleRateHz,
-            NamedArguments.IOS_AUDIO_CHANNEL: iosAudioChannel//Only ios uses the audio channel number
-          }
-      );
-
-      return _updateRecording(result, "Recorder initialized", onInitializedCallback, "Recorder not initialized", null);//TODO - CHRIS - we should have an error callback
-    } catch(exception) {
-      recording.message = "Recorder initialization exception:$exception";//TODO - CHRIS - I'd prefer the current recording and success/error be returned in one; not string messages
-      //TODO - CHRIS - we should have an error callback
-      return recording;
-    }
+    var result = await platform.init(recording.filepath, recording.extension, recording.sampleRateHz, iosAudioChannel);
+    return _updateRecording(result, "Recorder initialized", onInitializedCallback, "Recorder not initialized", onInitializedFailedCallback);
   }
 
   /// Ask for current status of recording
   /// Returns the result of current recording status
   /// Metering level, Duration, Status...
-  Future<Recording?> current({int? channel}) async {
-    var result = await MethodChannelHandler.METHOD_CHANNEL.invokeMethod(
-        NativeMethodCall.CURRENT.methodName
-    );
-    return _updateRecording(result, "Recording retrieved", onRecordingUpdatedCallback, "Recording not retrieved", null);//TODO - CHRIS - we should have an error callback
+  Future<Recording> current({int? channel}) async {
+    var result = await FlutterAudioRecorder4Platform.instance.current();
+    return _updateRecording(result, "Recording retrieved", onRecordingUpdatedCallback, "Recording not retrieved", onRecordingUpdatedFailedCallback);
   }
 
   /// Request an initialized recording instance to be [started]
@@ -204,8 +185,8 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
     _destroyOldTimer();
     _createNewTimer(recordingUpdateIntervalMillis);
 
-    var result = await MethodChannelHandler.METHOD_CHANNEL.invokeMethod(NativeMethodCall.START.methodName);
-    return _updateRecording(result, "Recording started", onStartedCallback, "Recording not started", null);//TODO - CHRIS - we should have an error callback
+    var result = await FlutterAudioRecorder4Platform.instance.start();
+    return _updateRecording(result, "Recording started", onStartedCallback, "Recording not started", onStartedFailedCallback);
   }
 
   _createNewTimer(int millis) {
@@ -230,22 +211,22 @@ class FlutterAudioRecorder4 extends PermissionsRequester {
   /// Request currently [Recording] recording to be [Paused]
   /// Note: Use [current] to get latest state of recording after [pause]
   Future<Recording> pause() async {
-    var result = await MethodChannelHandler.METHOD_CHANNEL.invokeMethod(NativeMethodCall.PAUSE.methodName);
-    return _updateRecording(result, "Recording paused", onPausedCallback, "Recording not paused", null);//TODO - CHRIS - we should have an error callback
+    var result = await FlutterAudioRecorder4Platform.instance.pause();
+    return _updateRecording(result, "Recording paused", onPausedCallback, "Recording not paused", onPausedFailedCallback);
   }
 
   /// Request currently [Paused] recording to continue
   Future<Recording> resume() async {
-    var result = MethodChannelHandler.METHOD_CHANNEL.invokeMethod(NativeMethodCall.RESUME.methodName);
-    return _updateRecording(result, "Recording resumed", onResumeCallback, "Recording not resumed", null);//TODO - CHRIS - we should have an error callback
+    var result = await FlutterAudioRecorder4Platform.instance.resume();
+    return _updateRecording(result, "Recording resumed", onResumeCallback, "Recording not resumed", onResumeFailedCallback);
   }
 
   /// Request the recording to stop
   /// Once its stopped, the recording file will be finalized and will not start, resume, pause anymore.
   /// Stop may be called as many times as desired, but the recording will only be stopped once.
   Future<Recording> stop() async {
-    var result = await MethodChannelHandler.METHOD_CHANNEL.invokeMethod(NativeMethodCall.STOP.methodName);
-    var updatedRecording = _updateRecording(result, "Recording stopped", onStoppedCallback, "Recording not stopped", null);//TODO - CHRIS - we should have an error callback
+    var result = await FlutterAudioRecorder4Platform.instance.stop();
+    var updatedRecording = _updateRecording(result, "Recording stopped", onStoppedCallback, "Recording not stopped", onStoppedFailedCallback);
 
     recordingFile = _localFileSystem.toFile(recording);
     playableRecordingFile = _localFileSystem.toFile(recording, onlyIfPlayable: true);

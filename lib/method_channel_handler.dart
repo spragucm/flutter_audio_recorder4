@@ -3,19 +3,14 @@ import 'flutter_audio_recorder4_platform_interface.dart';
 
 class MethodChannelHandler {
 
-  static MethodChannel METHOD_CHANNEL = MethodChannel("");
+  late MethodChannel methodChannel;
 
-  MethodChannelHandler(
-      String methodChannelName,
-      {
-        int? defaultChannel
-      }
-  ) {
-    METHOD_CHANNEL = MethodChannel(methodChannelName);
-    METHOD_CHANNEL.setMethodCallHandler(methodHandler);
+  FlutterAudioRecorder4Platform platform = FlutterAudioRecorder4Platform.instance;
+
+  MethodChannelHandler(String methodChannelName) {
+    methodChannel = MethodChannel(methodChannelName);
+    methodChannel.setMethodCallHandler(methodHandler);
   }
 
   Future<void> methodHandler(MethodCall call) async {}
-
-  Future<String> getPlatformVersion() async => await FlutterAudioRecorder4Platform.instance.getPlatformVersion() ?? "Unknown platform version";
 }

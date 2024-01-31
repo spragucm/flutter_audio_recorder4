@@ -7,7 +7,8 @@ enum NativeMethodCall {
   START(methodName: "start"),
   PAUSE(methodName: "pause"),
   RESUME(methodName: "resume"),
-  STOP(methodName: "stop");
+  STOP(methodName: "stop"),
+  GET_PLATFORM_VERSION(methodName: "getPlatformVersion");
 
   final String methodName;
 

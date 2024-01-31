@@ -26,4 +26,36 @@ abstract class FlutterAudioRecorder4Platform extends PlatformInterface {
   Future<String?> getPlatformVersion() {
     throw UnimplementedError('platformVersion() has not been implemented.');
   }
+
+  Future<bool> hasPermissions() async {
+    throw UnimplementedError('hasPermissions() has not been implemented.');
+  }
+
+  Future revokePermissions() async {
+    throw UnimplementedError('revokePermissions() has not been implemented.');
+  }
+
+  Future init(String? filepath, String extension, int sampleRateHz, int iosAudioChannel) async {
+    throw UnimplementedError('init() has not been implemented');
+  }
+
+  Future current() async {
+    throw UnimplementedError('current() has not been implemented');
+  }
+
+  Future start() async {
+    throw UnimplementedError('start() has not been implemented');
+  }
+
+  Future pause() async {
+    throw UnimplementedError('pause() has not been implemented');
+  }
+
+  Future resume() async {
+    throw UnimplementedError('resume() has not been implemented');
+  }
+
+  Future stop() async {
+    throw UnimplementedError("stop() has not been implemented");
+  }
 }

@@ -10,6 +10,31 @@ class MockFlutterAudioRecorder4Platform
 
   @override
   Future<String?> getPlatformVersion() => Future.value('42');
+
+  @override
+  Future<bool> hasPermissions() => Future.value(true);
+
+  @override
+  Future revokePermissions() => Future.value();
+
+  @override
+  Future init(String? filePath, String extension, int sampleRateHz, int iosAudioChannel) => Future.value();
+
+  @override
+  Future current() => Future.value();
+
+  @override
+  Future start() => Future.value();
+
+  @override
+  Future pause() => Future.value();
+
+  @override
+  Future resume() => Future.value();
+
+  @override
+  Future stop() => Future.value();
+
 }
 
 void main() {
@@ -20,10 +45,19 @@ void main() {
   });
 
   test('getPlatformVersion', () async {
-    // FlutterAudioRecorder4 flutterAudioRecorder4Plugin = FlutterAudioRecorder4();
-    // MockFlutterAudioRecorder4Platform fakePlatform = MockFlutterAudioRecorder4Platform();
-    // FlutterAudioRecorder4Platform.instance = fakePlatform;
-    //
-    // expect(await flutterAudioRecorder4Plugin.getPlatformVersion(), '42');
+    // Fake platform here, but this is set by android, ios, web, etc. to bind the calls to the native interfaces
+    MockFlutterAudioRecorder4Platform fakePlatform = MockFlutterAudioRecorder4Platform();
+    FlutterAudioRecorder4Platform.instance = fakePlatform;
+
+    FlutterAudioRecorder4 plugin = FlutterAudioRecorder4(null);
+    //TODO - CHRIS - write real tests for the following:
+    expect(await plugin.getPlatformVersion(), '42');
+    /*await plugin.init();
+    await plugin.current();
+    await plugin.start();
+    await plugin.pause();
+    await plugin.resume();
+    await plugin.stop();*/
+
   });
 }

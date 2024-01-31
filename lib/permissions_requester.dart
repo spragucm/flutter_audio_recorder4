@@ -1,46 +1,45 @@
 import 'package:flutter/services.dart';
+import 'package:flutter_audio_recorder4/platform_data_requester.dart';
 import 'flutter_method_call.dart';
-import 'method_channel_handler.dart';
-import 'native_method_call.dart';
 import 'dart:developer' as developer;
 
-class PermissionsRequester extends MethodChannelHandler {
+class PermissionsRequester extends PlatformDataRequester {
 
-  //This is static because hasPermissions and revokePermissions are static - the prior API is driving this
-  static bool ALL_PERMISSIONS_GRANTED = false;
-  static Function(bool hasPermissions)? _hasPermissionsExternalCallback;
-  static Function(bool hasPermissions) HAS_PERMISSIONS_CALLBACK = (bool hasPermissions){
-    ALL_PERMISSIONS_GRANTED = hasPermissions;
-    _hasPermissionsExternalCallback?.call(ALL_PERMISSIONS_GRANTED);
-  };
+  bool allPermissionsGranted = false;
+
+  Function(bool hasPermissions)? _hasPermissionsExternalCallback;
+
+  late Function(bool hasPermissions) _hasPermissionsCallback;
+
+  PermissionsRequester(
+      super.methodChannelName,
+      {
+        Function(bool)? hasPermissionsCallback,
+      }
+  ){
+    _hasPermissionsExternalCallback = hasPermissionsCallback;
+
+    _hasPermissionsCallback = (bool hasPermissions) {
+      allPermissionsGranted = hasPermissions;
+      _hasPermissionsExternalCallback?.call(allPermissionsGranted);
+    };
+  }
 
   /// Returns the result of record permission
   /// if not determined(app first launch),
   /// this will ask user to whether grant the permission
-  static Future<bool?> get hasPermissions async {
-    ALL_PERMISSIONS_GRANTED = await MethodChannelHandler.METHOD_CHANNEL.invokeMethod(NativeMethodCall.HAS_PERMISSIONS.methodName);
-    HAS_PERMISSIONS_CALLBACK(ALL_PERMISSIONS_GRANTED);
-    return ALL_PERMISSIONS_GRANTED;
+  Future<bool> hasPermissions() async {
+    allPermissionsGranted = await platform.hasPermissions();
+    _hasPermissionsCallback(allPermissionsGranted);
+    return allPermissionsGranted;
   }
 
-  // This is static because hasPermissions is static - the prior API is driving this
-  static Future get revokePermissions async {
-    return await MethodChannelHandler.METHOD_CHANNEL.invokeMethod(NativeMethodCall.REVOKE_PERMISSIONS.methodName);
-  }
-
-  PermissionsRequester(
-    super.methodChannelName,
-    {
-      super.defaultChannel,
-      Function(bool)? hasPermissionsCallback,
-    }
-  ){
-    _hasPermissionsExternalCallback = hasPermissionsCallback;
-  }
+  Future revokePermissions() async => await platform.revokePermissions();
 
   @override
   Future<void> methodHandler(MethodCall call) async {
     super.methodHandler(call);
+
     if (call.method == FlutterMethodCall.HAS_PERMISSIONS.methodName) {
       handleHasPermissions(call.arguments);
     } else {
@@ -48,5 +47,5 @@ class PermissionsRequester extends MethodChannelHandler {
     }
   }
 
-  void handleHasPermissions(bool hasPermissions) => HAS_PERMISSIONS_CALLBACK.call(hasPermissions);
+  void handleHasPermissions(bool hasPermissions) => _hasPermissionsCallback.call(hasPermissions);
 }
