@@ -9,7 +9,8 @@ enum class MethodCalls(var methodName: String) {
     START("start"),
     PAUSE("pause"),
     RESUME("resume"),
-    STOP("stop");
+    STOP("stop"),
+    GET_PLATFORM_VERSION("getPlatformVersion");
 
     companion object {
         fun String.toMethodCall() = MethodCalls.values().firstOrNull { it.methodName == this }

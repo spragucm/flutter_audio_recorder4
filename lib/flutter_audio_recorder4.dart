@@ -84,7 +84,7 @@ class FlutterAudioRecorder4 extends PermissionsHandler {
         this.onStoppedCallback,
         this.onStoppedFailedCallback
       }
-  ) : super(MethodChannelFlutterAudioRecorder4.METHOD_CHANNEL_NAME, hasPermissionsCallback: hasPermissionsCallback) {//TODO - CHRIS - this was just flutter_audio_recorder4
+  ) : super(MethodChannelFlutterAudioRecorder4.METHOD_CHANNEL_NAME, hasPermissionsCallback: hasPermissionsCallback) {
     _localFileSystem = localFileSystem ?? const LocalFileSystem();
 
     initialized = init(filepath, audioFormat, sampleRateHz);

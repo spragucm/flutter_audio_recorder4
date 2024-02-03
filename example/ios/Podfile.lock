@@ -6,6 +6,8 @@ PODS:
     - Flutter
   - integration_test (0.0.1):
     - Flutter
+  - package_info_plus (0.4.5):
+    - Flutter
   - path_provider_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -17,6 +19,7 @@ DEPENDENCIES:
   - Flutter (from `Flutter`)
   - flutter_audio_recorder4 (from `.symlinks/plugins/flutter_audio_recorder4/ios`)
   - integration_test (from `.symlinks/plugins/integration_test/ios`)
+  - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - restart_app (from `.symlinks/plugins/restart_app/ios`)
 
@@ -29,6 +32,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/flutter_audio_recorder4/ios"
   integration_test:
     :path: ".symlinks/plugins/integration_test/ios"
+  package_info_plus:
+    :path: ".symlinks/plugins/package_info_plus/ios"
   path_provider_foundation:
     :path: ".symlinks/plugins/path_provider_foundation/darwin"
   restart_app:
@@ -39,6 +44,7 @@ SPEC CHECKSUMS:
   Flutter: f04841e97a9d0b0a8025694d0796dd46242b2854
   flutter_audio_recorder4: 24fc2e204d40597425ce22f5a7ced5124a80c2d3
   integration_test: 13825b8a9334a850581300559b8839134b124670
+  package_info_plus: 115f4ad11e0698c8c1c5d8a689390df880f47e85
   path_provider_foundation: 29f094ae23ebbca9d3d0cec13889cd9060c0e943
   restart_app: 806659942bf932f6ce51c5372f91ce5e81c8c14a
 

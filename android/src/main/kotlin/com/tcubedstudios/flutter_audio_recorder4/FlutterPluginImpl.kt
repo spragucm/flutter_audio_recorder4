@@ -41,5 +41,7 @@ abstract class FlutterPluginImpl(
     //endregion
 
     @CallSuper
-    override fun onMethodCall(call: MethodCall, result: Result) {}
+    override fun onMethodCall(call: MethodCall, result: Result) {
+        result.notImplemented()
+    }
 }

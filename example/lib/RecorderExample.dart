@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io' as io;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:file/file.dart';
@@ -29,9 +28,6 @@ class RecorderExampleState extends State<RecorderExample> {
   late FlutterAudioRecorder4 recorder;
   AudioPlayer audioPlayer = AudioPlayer();
 
-  String platformVersion = "";
-  String libraryVersion = "TODO";
-
   bool hasPermissions = false;
   bool isRevoked = false;
 
@@ -57,7 +53,6 @@ class RecorderExampleState extends State<RecorderExample> {
     audioPlayer.onPlayerStateChanged.listen((event) {
       triggerStateRefresh();
     });
-    updatePlatformVersion();
   }
 
   void start() async {
@@ -114,14 +109,6 @@ class RecorderExampleState extends State<RecorderExample> {
     }
   }
 
-  //TODO - CHRIS - not sure why platform version is in the example
-  Future<void> updatePlatformVersion() async {
-    var platformVersion = await recorder.getPlatformVersion();
-    setState((){
-      this.platformVersion = platformVersion;
-    });
-  }
-
   _hasPermissionsCallback(hasPermissions) async {
     var message = hasPermissions ? "All permissions accepted." : "You mus accept all permissions";
     showSnackBarMessage("$message. RecorderState:${recorder.recorderState}");
@@ -158,7 +145,6 @@ class RecorderExampleState extends State<RecorderExample> {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: <Widget>[
             buildPermissionsRow(),
-            buildVersionsRow(),
             buildRecorderRow(),
             buildRecorderStateRow(),
             buildAudioPlayerStateRow(),
@@ -184,8 +170,6 @@ class RecorderExampleState extends State<RecorderExample> {
       buildRevokePermissionsButton()
     ],
   );
-
-  Widget buildVersionsRow() => Text('Library version $libraryVersion running on platform version $platformVersion');
 
   Widget buildRecorderRow() {
     return Row(

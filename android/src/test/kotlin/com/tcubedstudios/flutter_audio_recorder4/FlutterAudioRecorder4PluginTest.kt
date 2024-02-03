@@ -4,6 +4,7 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import kotlin.test.Test
 import org.mockito.Mockito
+import com.tcubedstudios.flutter_audio_recorder4.MethodCalls.GET_PLATFORM_VERSION
 
 /*
  * This demonstrates a simple unit test of the Kotlin portion of this plugin's implementation.
@@ -18,7 +19,7 @@ internal class FlutterAudioRecorder4PluginTest {
   fun onMethodCall_getPlatformVersion_returnsExpectedValue() {
     val plugin = FlutterAudioRecorder4Plugin()
 
-    val call = MethodCall("getPlatformVersion", null)
+    val call = MethodCall(GET_PLATFORM_VERSION.methodName, null)
     val mockResult: MethodChannel.Result = Mockito.mock(MethodChannel.Result::class.java)
     plugin.onMethodCall(call, mockResult)
 

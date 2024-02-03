@@ -4,10 +4,13 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_audio_recorder4/flutter_audio_recorder4.dart';
 import 'package:flutter_audio_recorder4_example/RecorderExample.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 void main() {
-  WidgetsFlutterBinding.ensureInitialized();//TODO - CHRIS - is this necessary?
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);//TODO - CHRIS - is this necessary?
+  // Be sure to add this line if `PackageInfo.fromPlatform()` is called before runApp()
+  WidgetsFlutterBinding.ensureInitialized();
+
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
   runApp(const MyApp());
 }
 
@@ -20,7 +23,13 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
 
-  String _platformVersion = 'Unknown';
+  String _appName = "Unknown";
+  String _packageName = "Unknown";
+  String _version = "Unknown";
+  String _buildNumber = "Unknown";
+
+  String _platformVersion = "Unknown";
+
   final _flutterAudioRecorder4Plugin = FlutterAudioRecorder4(null);
 
   @override
@@ -31,6 +40,10 @@ class _MyAppState extends State<MyApp> {
 
   // Platform messages are asynchronous, so we initialize in an async method.
   Future<void> initPlatformState() async {
+
+    PackageInfo packageInfo = await PackageInfo.fromPlatform();
+
+
     String platformVersion;
     // Platform messages may fail, so we use a try/catch PlatformException.
     // We also handle the message potentially returning null.
@@ -47,6 +60,10 @@ class _MyAppState extends State<MyApp> {
     if (!mounted) return;
 
     setState(() {
+      _appName = packageInfo.appName;
+      _packageName = packageInfo.packageName;
+      _version = packageInfo.version;
+      _buildNumber = packageInfo.buildNumber;
       _platformVersion = platformVersion;
     });
   }
@@ -56,7 +73,12 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('Flutter Audio Recorder 4 v1.0.0'),//TODO - CHRIS - retrieve version number from yaml
+          title: Column(
+            children: [
+              Text(_appName),
+              Text(' $_version +$_buildNumber on $_platformVersion'),
+            ],
+          )
         ),
         body: const SafeArea(
           child: RecorderExample()

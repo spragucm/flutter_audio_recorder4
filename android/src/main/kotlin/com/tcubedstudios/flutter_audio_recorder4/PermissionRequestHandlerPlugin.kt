@@ -14,10 +14,10 @@ import io.flutter.plugin.common.PluginRegistry
 import io.flutter.plugin.common.PluginRegistry.Registrar
 
 // Registrar is passed for Android plugin v1 compatibility
-abstract class PermissionRequestListenerActivityPlugin(
+abstract class PermissionRequestHandlerPlugin(
     registrar: Registrar? = null,
     methodChannel: MethodChannel? = null
-) : PlatformInfoHandler(registrar, methodChannel), PluginRegistry.RequestPermissionsResultListener {
+) : PlatformInfoHandlerPlugin(registrar, methodChannel), PluginRegistry.RequestPermissionsResultListener {
 
     open val permissionsRequestCode = 200
     abstract val permissionsToRequest: List<PermissionToRequest>
@@ -29,6 +29,20 @@ abstract class PermissionRequestListenerActivityPlugin(
             val sdk = Build.VERSION.SDK_INT
             sdk in minSdk..maxSdk
         }.map { it.permission }.toSet()
+
+    //region Flutter exchange handling
+    override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
+        when(call.method.toMethodCall()) {
+            HAS_PERMISSIONS -> handleHasPermissions(result)
+            REVOKE_PERMISSIONS -> revokePermissions(result)
+            else -> super.onMethodCall(call, result)
+        }
+    }
+
+    private fun callFlutterHasPermissions(allGranted: Boolean) {
+        methodChannel?.invokeMethod(FlutterMethodCalls.HAS_PERMISSIONS.methodName, allGranted)
+    }
+    //endregion
 
     //region region Add/Remove listener based on lifecycle (Android plugin v1)
     init {
@@ -55,20 +69,6 @@ abstract class PermissionRequestListenerActivityPlugin(
     override fun onDetachedFromActivity() {
         binding?.removeRequestPermissionsResultListener(this)
         super.onDetachedFromActivity()
-    }
-    //endregion
-
-    //region Flutter exchange handling
-    override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
-        when(call.method.toMethodCall()) {
-            HAS_PERMISSIONS -> handleHasPermissions(result)
-            REVOKE_PERMISSIONS -> revokePermissions(result)
-            else -> super.onMethodCall(call, result)
-        }
-    }
-
-    private fun callFlutterHasPermissions(allGranted: Boolean) {
-        methodChannel?.invokeMethod(FlutterMethodCalls.HAS_PERMISSIONS.methodName, allGranted)
     }
     //endregion
 

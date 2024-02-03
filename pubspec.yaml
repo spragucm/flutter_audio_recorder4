@@ -13,6 +13,7 @@ dependencies:
   plugin_platform_interface: ^2.0.2
   path: ^1.8.2
   file: ^7.0.0
+  package_info_plus: ^5.0.1
 
 dev_dependencies:
   flutter_test:

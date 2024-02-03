@@ -42,7 +42,7 @@ import kotlin.math.ln
 class FlutterAudioRecorder4Plugin(
     registrar: Registrar? = null,
     methodChannel: MethodChannel? = null
-) : PermissionRequestListenerActivityPlugin(registrar, methodChannel) {
+) : PermissionRequestHandlerPlugin(registrar, methodChannel) {
 
   //TODO - CHRIS
   // If recorder is ever expected to operate in a background service, implement ServiceAware interface.
