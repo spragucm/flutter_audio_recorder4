@@ -1,16 +1,16 @@
 import Flutter
 import AVFoundation
 
-public class PermissionRequestListenerActivityPlugin: ActivityAwarePlugin {
+public class PermissionRequestHandlerPlugin: PlatformInfoHandlerPlugin {
     
     public var hasPermissions = false
  
-    public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    override public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method.toMethodCall() {
         case .HAS_PERMISSIONS:
             handleHasPermissions(result: result)
         default:
-            result(FlutterMethodNotImplemented)
+            super.handle(call, result: result)
         }
     }
     

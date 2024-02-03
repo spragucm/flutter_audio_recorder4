@@ -2,7 +2,7 @@ import Flutter
 import UIKit
 import AVFoundation
 
-public class FlutterAudioRecorder4Plugin: PermissionRequestListenerActivityPlugin, AVAudioRecorderDelegate {
+public class FlutterAudioRecorder4Plugin: PermissionRequestHandlerPlugin, AVAudioRecorderDelegate {
 
     private static let DEFAULT_SAMPLE_RATE_HZ = 16000
     private static let DEFAULT_PEAK_POWER = -120.0

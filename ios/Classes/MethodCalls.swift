@@ -10,6 +10,7 @@ enum MethodCalls: CaseIterable {
     case PAUSE
     case RESUME
     case STOP
+    case GET_PLATFORM_VERSION
     
     var methodName: String {
         get {
@@ -28,6 +29,8 @@ enum MethodCalls: CaseIterable {
                 return "pause"
             case .RESUME:
                 return "resume"
+            case .GET_PLATFORM_VERSION:
+                return "getPlatformVersion"
             default:
                 return "stop"
             }

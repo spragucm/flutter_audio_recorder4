@@ -1,3 +1,20 @@
+func getAppVersionAndBuild() -> String {
+    let dictionary = Bundle.main.infoDictionary!
+    let version = dictionary["CFBundleShortVersionString"] as! String
+    let build = dictionary["CFBundleVersion"] as! String
+    return version + "(" + build + ")"
+}
+
+func getAppName() -> String {
+    let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as! String
+    return appName
+}
+
+func getOsVersion() -> String {
+    let os = ProcessInfo.processInfo.operatingSystemVersion
+    return String(os.majorVersion) + "." + String(os.minorVersion) + "." + String(os.patchVersion)
+}
+
 extension String {
     func plus(_ str: String?) -> String? {
         //Swift is so dumb!
