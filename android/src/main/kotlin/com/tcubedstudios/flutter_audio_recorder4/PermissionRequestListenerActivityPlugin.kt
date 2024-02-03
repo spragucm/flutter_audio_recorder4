@@ -17,7 +17,7 @@ import io.flutter.plugin.common.PluginRegistry.Registrar
 abstract class PermissionRequestListenerActivityPlugin(
     registrar: Registrar? = null,
     methodChannel: MethodChannel? = null
-) : ActivityAwarePlugin(registrar, methodChannel), PluginRegistry.RequestPermissionsResultListener {
+) : PlatformInfoHandler(registrar, methodChannel), PluginRegistry.RequestPermissionsResultListener {
 
     open val permissionsRequestCode = 200
     abstract val permissionsToRequest: List<PermissionToRequest>
