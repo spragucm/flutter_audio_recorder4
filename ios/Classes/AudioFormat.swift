@@ -17,8 +17,12 @@ enum AudioFormat: String, CaseIterable {
     }
 }
 
-extension String {
+extension String? {
     func toAudioFormat() -> AudioFormat? {
+        var cases = AudioExtension.allCases;
+        var first = cases.first { $0.ext == self }
+        var audioFormat = first?.audioFormat
+        
         return AudioExtension.allCases.first { $0.ext == self }?.audioFormat
     }
 }

@@ -40,10 +40,10 @@ public class FlutterAudioRecorder4Plugin: PermissionRequestHandlerPlugin, AVAudi
         get {
             [
                 NamedArguments.FILEPATH: filepath,
-                NamedArguments.FILEPATH_TEMP: [filepathTemp, "bla"].compactMap { $0 }.joined(separator:""),
+                NamedArguments.FILEPATH_TEMP: [filepathTemp, "NO_TEMP_ON_IOS"].compactMap { $0 }.joined(separator:""),
                 NamedArguments.EXTENSION: ext,
                 NamedArguments.DURATION: duration,
-                NamedArguments.AUDIO_FORMAT: ext?.toAudioFormat()?.name,
+                NamedArguments.AUDIO_FORMAT: ext.toAudioFormat()?.ext,
                 NamedArguments.RECORDER_STATE: recorderState.value,
                 NamedArguments.METERING_ENABLED: meteringEnabled,
                 NamedArguments.PEAK_POWER: peakPower,
@@ -60,8 +60,6 @@ public class FlutterAudioRecorder4Plugin: PermissionRequestHandlerPlugin, AVAudi
   
    
     override public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-        var methodCall = call.method.toMethodCall()
-        
         switch call.method.toMethodCall() {
         case .CURRENT:
             handleCurrent(result)
@@ -95,13 +93,6 @@ public class FlutterAudioRecorder4Plugin: PermissionRequestHandlerPlugin, AVAudi
             let dic = call.arguments as! [String : Any]
             
             filepath = dic[NamedArguments.FILEPATH] as? String
-            if (filepath == "") {
-                var startTime = Date()
-                let documentsPath = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0]
-                filepath = documentsPath + "/" + String(Int(startTime.timeIntervalSince1970)) + ".m4a"
-                print("path: " + (filepath ?? ""))
-            }
-            
             ext = dic[NamedArguments.EXTENSION] as? String
             sampleRateHz = dic[NamedArguments.SAMPLE_RATE_HZ] as? Int ?? sampleRateHz
             recorderState = filepath.isNotNullOrEmpty() && ext.isNotNullOrEmpty() ? RecorderState.INITIALIZED : RecorderState.UNSET

@@ -17,7 +17,7 @@ enum AudioExtension: CaseIterable {
             case .WAV:
                 return ".wav"
             default: //M4A
-                return ""
+                return ".m4a"
             }
         }
     }
