@@ -1,8 +1,8 @@
 import 'method_channel_handler.dart';
 
-class PlatformDataRequester extends MethodChannelHandler {
+class PlatformInfoHandler extends MethodChannelHandler {
 
-  PlatformDataRequester(super.methodChannelName);
+  PlatformInfoHandler(super.methodChannelName);
 
   Future<String> getPlatformVersion() async => await platform.getPlatformVersion() ?? "Unknown platform version";
 }

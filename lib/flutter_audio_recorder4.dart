@@ -1,5 +1,5 @@
 import 'package:flutter_audio_recorder4/flutter_audio_recorder4_method_channel.dart';
-import 'package:flutter_audio_recorder4/permissions_requester.dart';
+import 'package:flutter_audio_recorder4/permissions_handler.dart';
 import 'package:flutter_audio_recorder4/recorder_state.dart';
 import 'package:flutter_audio_recorder4/recording.dart';
 import 'package:flutter_audio_recorder4/utils.dart';
@@ -13,7 +13,7 @@ import 'package:file/local.dart';
 import 'package:path/path.dart' as path_library;
 import 'package:file/file.dart';
 
-class FlutterAudioRecorder4 extends PermissionsRequester {
+class FlutterAudioRecorder4 extends PermissionsHandler {
 
   static const int DEFAULT_IOS_AUDIO_CHANNEL = 0;
 

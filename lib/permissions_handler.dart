@@ -1,9 +1,9 @@
 import 'package:flutter/services.dart';
-import 'package:flutter_audio_recorder4/platform_data_requester.dart';
+import 'package:flutter_audio_recorder4/platform_info_handler.dart';
 import 'flutter_method_call.dart';
 import 'dart:developer' as developer;
 
-class PermissionsRequester extends PlatformDataRequester {
+class PermissionsHandler extends PlatformInfoHandler {
 
   bool allPermissionsGranted = false;
 
@@ -11,7 +11,7 @@ class PermissionsRequester extends PlatformDataRequester {
 
   late Function(bool hasPermissions) _hasPermissionsCallback;
 
-  PermissionsRequester(
+  PermissionsHandler(
       super.methodChannelName,
       {
         Function(bool)? hasPermissionsCallback,
