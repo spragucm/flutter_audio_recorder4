@@ -19,6 +19,6 @@ enum AudioFormat: String, CaseIterable {
 
 extension String {
     func toAudioFormat() -> AudioFormat? {
-        return AudioExtension.AllCases().first { $0.ext == self }?.audioFormat
+        return AudioExtension.allCases.first { $0.ext == self }?.audioFormat
     }
 }

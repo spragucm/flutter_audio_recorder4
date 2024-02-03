@@ -16,6 +16,6 @@ enum FlutterMethodCalls: CaseIterable {
 
 extension String? {
     func toFlutterMethodCall() -> String? {
-        return FlutterMethodCalls.AllCases().first { $0.methodName == self }?.methodName
+        return FlutterMethodCalls.allCases.first { $0.methodName == self }?.methodName
     }
 }

@@ -45,7 +45,7 @@ enum AudioExtension: CaseIterable {
 extension String {
     
     func toAudioExtension() -> AudioExtension? {
-        return AudioExtension.AllCases().first { $0.ext == self }
+        return AudioExtension.allCases.first { $0.ext == self }
     }
     
     // developer.apple.com/documentation/coreaudiotypes/coreaudiotype_constants/1572096-audio_data_format_identifiers

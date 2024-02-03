@@ -60,6 +60,8 @@ public class FlutterAudioRecorder4Plugin: PermissionRequestListenerActivityPlugi
   
    
     override public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        var methodCall = call.method.toMethodCall()
+        
         switch call.method.toMethodCall() {
         case .CURRENT:
             handleCurrent(result)
