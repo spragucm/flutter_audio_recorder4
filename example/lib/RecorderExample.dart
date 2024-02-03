@@ -167,7 +167,7 @@ class RecorderExampleState extends State<RecorderExample> {
       Text("Has permissions:$hasPermissions"),
       Text("BIG NOTE: Depending on the device, selecting \"don't allow\" permission will permanently disallow the permission and the user will have to go into settings and allow it. If the user selects \"ask every time\" then the permissions popup will display each time. Revoke permissions seemed to work and no longer does :("),
       buildGetPermissionsButton(),
-      buildRevokePermissionsButton()
+      /*buildRevokePermissionsButton()*/
     ],
   );
 
