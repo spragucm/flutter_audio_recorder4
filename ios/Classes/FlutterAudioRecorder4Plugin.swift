@@ -177,9 +177,9 @@ public class FlutterAudioRecorder4Plugin: PermissionRequestHandlerPlugin, AVAudi
         recorderState = RecorderState.RECORDING
         recorder?.record()
         doProcessAudioStream = true
-        //TODO - CHRIS - recordingThread = Thread({ processAudioStream() }, "Audio Processing Thread")
-        //TODO - CHRIS - recordingThread?.start()
+        startProcessAudioStreamThread()
     }
+    
     
     private func stopProcessing(doRelase: Bool) {
         if (doRelase) {
@@ -188,14 +188,24 @@ public class FlutterAudioRecorder4Plugin: PermissionRequestHandlerPlugin, AVAudi
         } else {
             recorder?.pause()
         }
-        doProcessAudioStream = false
-        
-        //TODO - CHRIS - remove the following once there is a thread to call processAudioStream
-        processAudioStream()
-        
-        //TODO - CHRIS - recordingThread = null
+        doProcessAudioStream = false//this will not stop the thread, but it will ensure it's not restarted
     }
+ 
     
+    private func startProcessAudioStreamThread() {
+        DispatchQueue.background(
+            delay: 0.5,
+            background: {
+                self.processAudioStream()
+            },
+            completion: {
+                if (self.doProcessAudioStream) {
+                    self.startProcessAudioStreamThread()
+                }
+            }
+        )
+    }
+       
     private func processAudioStream() {
         if let rec = recorder {
             updatePowers(rec)
