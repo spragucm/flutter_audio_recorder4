@@ -190,6 +190,9 @@ public class FlutterAudioRecorder4Plugin: PermissionRequestHandlerPlugin, AVAudi
         }
         doProcessAudioStream = false
         
+        //TODO - CHRIS - remove the following once there is a thread to call processAudioStream
+        processAudioStream()
+        
         //TODO - CHRIS - recordingThread = null
     }
     
